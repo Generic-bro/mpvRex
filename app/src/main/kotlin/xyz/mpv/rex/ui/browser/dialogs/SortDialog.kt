@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +34,8 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.ViewModule
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Surface
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.FolderSortType
@@ -71,8 +74,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalConfiguration
 
 @Composable
 fun SortDialog(
@@ -108,100 +116,116 @@ fun SortDialog(
 ) {
   if (!isOpen) return
 
+  val configuration = LocalConfiguration.current
+  val contentPadding = if (configuration.screenWidthDp < 380) 16.dp else 24.dp
   val (ascLabel, descLabel) = getLabelForType(sortType)
 
-  AlertDialog(
+  BasicAlertDialog(
     onDismissRequest = onDismiss,
-    title = {
-      Text(
-        text = title,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Medium,
-        color = MaterialTheme.colorScheme.onSurface,
-      )
-    },
-    text = {
+    properties = DialogProperties(usePlatformDefaultWidth = false),
+    modifier =
+      modifier
+        .padding(horizontal = 16.dp)
+        .widthIn(max = 480.dp)
+        .fillMaxWidth(),
+  ) {
+    Surface(
+      shape = MaterialTheme.shapes.extraLarge,
+      tonalElevation = 6.dp,
+      color = MaterialTheme.colorScheme.surfaceContainerHigh,
+      modifier = Modifier.fillMaxWidth(),
+    ) {
       Column(
         modifier =
           Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(contentPadding),
       ) {
-        if (showSortOptions) {
-          SortTypeSelector(
-            sortType = sortType,
-            onSortTypeChange = onSortTypeChange,
-            types = types,
-            icons = icons,
-            sortOrderAsc = sortOrderAsc,
-            onSortOrderChange = onSortOrderChange,
-            ascLabel = ascLabel,
-            descLabel = descLabel,
-            modifier = Modifier.fillMaxWidth(),
-            typeLabels = typeLabels,
-          )
-        }
+        Text(
+          text = title,
+          style = MaterialTheme.typography.headlineSmall,
+          fontWeight = FontWeight.Medium,
+          color = MaterialTheme.colorScheme.onSurface,
+          modifier = Modifier.padding(bottom = 16.dp),
+        )
 
-        if (viewModeSelector != null || layoutModeSelector != null) {
-          SectionCard {
-            Row(
-              modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-              verticalAlignment = Alignment.Top,
-            ) {
-              if (viewModeSelector != null) {
-                MultiViewModeSelectorComponent(
-                  selector = viewModeSelector,
-                  enabled = enableViewModeOptions,
-                  modifier = Modifier.weight(3f),
-                )
-              }
+        Column(
+          modifier =
+            Modifier
+              .fillMaxWidth()
+              .verticalScroll(rememberScrollState()),
+          verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+          if (showSortOptions) {
+            SortTypeSelector(
+              sortType = sortType,
+              onSortTypeChange = onSortTypeChange,
+              types = types,
+              icons = icons,
+              sortOrderAsc = sortOrderAsc,
+              onSortOrderChange = onSortOrderChange,
+              ascLabel = ascLabel,
+              descLabel = descLabel,
+              modifier = Modifier.fillMaxWidth(),
+              typeLabels = typeLabels,
+            )
+          }
 
-              if (viewModeSelector != null && layoutModeSelector != null) {
-                VerticalDivider(
-                  modifier = Modifier.padding(vertical = 8.dp),
-                  color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                )
-              }
+          if (viewModeSelector != null || layoutModeSelector != null) {
+            SectionCard {
+              Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top,
+              ) {
+                if (viewModeSelector != null) {
+                  MultiViewModeSelectorComponent(
+                    selector = viewModeSelector,
+                    enabled = enableViewModeOptions,
+                    modifier = Modifier.weight(3f),
+                  )
+                }
 
-              if (layoutModeSelector != null) {
-                ViewModeSelectorComponent(
-                  viewModeSelector = layoutModeSelector,
-                  enabled = enableLayoutModeOptions,
-                  modifier = Modifier.weight(2f),
-                )
+                if (viewModeSelector != null && layoutModeSelector != null) {
+                  VerticalDivider(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                  )
+                }
+
+                if (layoutModeSelector != null) {
+                  ViewModeSelectorComponent(
+                    viewModeSelector = layoutModeSelector,
+                    enabled = enableLayoutModeOptions,
+                    modifier = Modifier.weight(2f),
+                  )
+                }
               }
             }
           }
-        }
 
-        GridColumnsSection(
-          folderGridColumnSelector = folderGridColumnSelector,
-          videoGridColumnSelector = videoGridColumnSelector,
-        )
-
-        if (contentToggles.isNotEmpty()) {
-          ContentTogglesSection(
-            toggles = contentToggles,
-            modifier = Modifier.fillMaxWidth(),
+          GridColumnsSection(
+            folderGridColumnSelector = folderGridColumnSelector,
+            videoGridColumnSelector = videoGridColumnSelector,
           )
-        }
 
-        if (visibilityToggles.isNotEmpty()) {
-          VisibilityTogglesSection(
-            toggles = visibilityToggles,
-            modifier = Modifier.fillMaxWidth(),
-          )
+          if (contentToggles.isNotEmpty()) {
+            ContentTogglesSection(
+              toggles = contentToggles,
+              modifier = Modifier.fillMaxWidth(),
+            )
+          }
+
+          if (visibilityToggles.isNotEmpty()) {
+            VisibilityTogglesSection(
+              toggles = visibilityToggles,
+              modifier = Modifier.fillMaxWidth(),
+            )
+          }
         }
       }
-    },
-    confirmButton = {},
-    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-    tonalElevation = 6.dp,
-    shape = MaterialTheme.shapes.extraLarge,
-    modifier = modifier,
-  )
+    }
+  }
 }
 
 data class ContentToggle(
@@ -267,6 +291,79 @@ private fun SectionCard(
 }
 
 @Composable
+private fun SegmentedOptionGroup(
+  modifier: Modifier = Modifier,
+  content: @Composable RowScope.() -> Unit,
+) {
+  Row(
+    modifier = modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically,
+    content = content,
+  )
+}
+
+@Composable
+private fun RowScope.SegmentedOptionItem(
+  selected: Boolean,
+  onClick: () -> Unit,
+  icon: ImageVector,
+  label: String,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+  iconSize: Dp = 20.dp,
+) {
+  val shape = RoundedCornerShape(12.dp)
+  val containerColor = if (selected && enabled) {
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+  } else if (selected) {
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+  } else {
+    Color.Transparent
+  }
+  val contentColor = if (selected && enabled) {
+    MaterialTheme.colorScheme.primary
+  } else if (selected) {
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+  } else if (enabled) {
+    MaterialTheme.colorScheme.onSurfaceVariant
+  } else {
+    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+  }
+
+  Column(
+    modifier = modifier
+      .weight(1f)
+      .clip(shape)
+      .background(containerColor)
+      .clickable(
+        enabled = enabled,
+        onClick = onClick,
+        interactionSource = remember { MutableInteractionSource() },
+        indication = ripple(bounded = true),
+      )
+      .padding(vertical = 8.dp, horizontal = 2.dp),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
+    Icon(
+      imageVector = icon,
+      contentDescription = label,
+      tint = contentColor,
+      modifier = Modifier.size(iconSize),
+    )
+    Text(
+      text = label,
+      fontSize = 11.sp,
+      style = MaterialTheme.typography.labelMedium,
+      fontWeight = if (selected && enabled) FontWeight.Bold else FontWeight.Medium,
+      color = contentColor,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis,
+    )
+  }
+}
+
+@Composable
 private fun SortTypeSelector(
   sortType: String,
   onSortTypeChange: (String) -> Unit,
@@ -320,73 +417,16 @@ private fun SortTypeSelector(
       }
     }
 
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceEvenly,
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
+    SegmentedOptionGroup(modifier = Modifier.fillMaxWidth()) {
       types.forEachIndexed { index, type ->
         val selected = sortType == type
-        val shape = RoundedCornerShape(16.dp)
-
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          val label = typeLabels.getOrNull(index) ?: type
-          Box(
-            modifier =
-              Modifier
-                .size(48.dp)
-                .clip(shape)
-                .background(
-                  color =
-                    if (selected) {
-                      MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    } else {
-                      Color.Transparent
-                    },
-                )
-                .then(
-                  if (!selected) {
-                    Modifier.background(
-                      MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f),
-                      shape
-                    )
-                  } else Modifier
-                )
-                .clickable(
-                  onClick = { onSortTypeChange(type) },
-                  interactionSource = remember { MutableInteractionSource() },
-                  indication = ripple(bounded = true),
-                ),
-            contentAlignment = Alignment.Center,
-          ) {
-            Icon(
-              imageVector = icons[index],
-              contentDescription = null,
-              tint =
-                if (selected) {
-                  MaterialTheme.colorScheme.primary
-                } else {
-                  MaterialTheme.colorScheme.onSurfaceVariant
-                },
-              modifier = Modifier.size(18.dp),
-            )
-          }
-
-          Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color =
-              if (selected) {
-                MaterialTheme.colorScheme.primary
-              } else {
-                MaterialTheme.colorScheme.onSurface
-              },
-          )
-        }
+        val label = typeLabels.getOrNull(index) ?: type
+        SegmentedOptionItem(
+          selected = selected,
+          onClick = { onSortTypeChange(type) },
+          icon = icons[index],
+          label = label,
+        )
       }
     }
   }
@@ -413,68 +453,16 @@ private fun MultiViewModeSelectorComponent(
       },
     )
 
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceEvenly,
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
+    SegmentedOptionGroup(modifier = Modifier.fillMaxWidth()) {
       selector.options.forEach { option ->
-        val selected = option.isSelected
-        val shape = RoundedCornerShape(12.dp)
-
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          Box(
-            modifier = Modifier
-              .size(48.dp)
-              .clip(shape)
-              .background(
-                color = if (selected && enabled) {
-                  MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                } else if (enabled) {
-                  MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f)
-                } else {
-                  MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.2f)
-                },
-              )
-              .clickable(
-                enabled = enabled,
-                onClick = { option.onClick() },
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true),
-              ),
-            contentAlignment = Alignment.Center,
-          ) {
-            Icon(
-              imageVector = option.icon,
-              contentDescription = option.label,
-              modifier = Modifier.size(24.dp),
-              tint = if (selected && enabled) {
-                MaterialTheme.colorScheme.primary
-              } else if (enabled) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-              } else {
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-              },
-            )
-          }
-
-          Text(
-            text = option.label,
-            modifier = Modifier.clearAndSetSemantics { },
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected && enabled) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected && enabled) {
-              MaterialTheme.colorScheme.primary
-            } else if (enabled) {
-              MaterialTheme.colorScheme.onSurface
-            } else {
-              MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-            },
-          )
-        }
+        SegmentedOptionItem(
+          selected = option.isSelected,
+          onClick = option.onClick,
+          icon = option.icon,
+          label = option.label,
+          enabled = enabled,
+          iconSize = 22.dp,
+        )
       }
     }
   }
@@ -505,67 +493,15 @@ private fun ViewModeSelectorComponent(
       },
     )
 
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceEvenly,
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
+    SegmentedOptionGroup(modifier = Modifier.fillMaxWidth()) {
       options.forEachIndexed { index, label ->
-        val selected = index == selectedIndex
-        val shape = RoundedCornerShape(12.dp)
-
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          Box(
-            modifier = Modifier
-              .size(48.dp)
-              .clip(shape)
-              .background(
-                color = if (selected && enabled) {
-                  MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                } else if (enabled) {
-                  MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f)
-                } else {
-                  MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.2f)
-                },
-              )
-              .clickable(
-                enabled = enabled,
-                onClick = { viewModeSelector.onViewModeChange(index == 0) },
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true),
-              ),
-            contentAlignment = Alignment.Center,
-          ) {
-            Icon(
-              imageVector = icons[index],
-              contentDescription = null,
-              tint = if (selected && enabled) {
-                MaterialTheme.colorScheme.primary
-              } else if (enabled) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-              } else {
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-              },
-              modifier = Modifier.size(18.dp),
-            )
-          }
-
-          Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected && enabled) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected && enabled) {
-              MaterialTheme.colorScheme.primary
-            } else if (enabled) {
-              MaterialTheme.colorScheme.onSurface
-            } else {
-              MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-            },
-          )
-        }
+        SegmentedOptionItem(
+          selected = index == selectedIndex,
+          onClick = { viewModeSelector.onViewModeChange(index == 0) },
+          icon = icons[index],
+          label = label,
+          enabled = enabled,
+        )
       }
     }
   }
@@ -576,64 +512,96 @@ private fun ContentTogglesSection(
   toggles: List<ContentToggle>,
   modifier: Modifier = Modifier,
 ) {
-  SectionCard(modifier = modifier) {
-    Text(
-      text = stringResource(R.string.filters),
-      style = MaterialTheme.typography.titleMedium,
-      fontWeight = FontWeight.Medium,
-      color = MaterialTheme.colorScheme.onSurface,
-    )
+  var expanded by remember { mutableStateOf(false) }
 
-    Column(
-      verticalArrangement = Arrangement.spacedBy(4.dp)
+  Column(
+    modifier = modifier
+      .fillMaxWidth()
+      .clip(RoundedCornerShape(16.dp))
+      .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+  ) {
+    // Header row with Filters text and dropdown button
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable(
+          interactionSource = remember { MutableInteractionSource() },
+          indication = ripple(bounded = true),
+          onClick = { expanded = !expanded }
+        )
+        .padding(12.dp),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically,
     ) {
-      toggles.forEach { toggle ->
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(
-              interactionSource = remember { MutableInteractionSource() },
-              indication = ripple(bounded = true),
-              onClick = { toggle.onCheckedChange(!toggle.checked) },
+      Text(
+        text = stringResource(R.string.filters),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurface,
+      )
+
+      Icon(
+        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.ArrowDropDown,
+        contentDescription = if (expanded) stringResource(R.string.cd_collapse) else stringResource(R.string.cd_expand),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+
+    if (expanded) {
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+      ) {
+        toggles.forEach { toggle ->
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .clip(RoundedCornerShape(8.dp))
+              .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = true),
+                onClick = { toggle.onCheckedChange(!toggle.checked) },
+              )
+              .padding(vertical = 4.dp, horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Text(
+              text = toggle.label,
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurface,
             )
-            .padding(vertical = 4.dp, horizontal = 4.dp),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Text(
-            text = toggle.label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-          )
-          Switch(
-            checked = toggle.checked,
-            onCheckedChange = toggle.onCheckedChange,
-            modifier = Modifier.scale(0.8f),
-            thumbContent = {
-              Crossfade(
-                targetState = toggle.checked,
-                animationSpec = tween(durationMillis = 200),
-                label = "SwitchIconAnimation"
-              ) { isChecked ->
-                if (isChecked) {
-                  Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                  )
-                } else {
-                  Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                  )
+            Switch(
+              checked = toggle.checked,
+              onCheckedChange = toggle.onCheckedChange,
+              modifier = Modifier.scale(0.8f),
+              thumbContent = {
+                Crossfade(
+                  targetState = toggle.checked,
+                  animationSpec = tween(durationMillis = 200),
+                  label = "SwitchIconAnimation"
+                ) { isChecked ->
+                  if (isChecked) {
+                    Icon(
+                      imageVector = Icons.Filled.Check,
+                      contentDescription = null,
+                      modifier = Modifier.size(SwitchDefaults.IconSize),
+                      tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                  } else {
+                    Icon(
+                      imageVector = Icons.Filled.Close,
+                      contentDescription = null,
+                      modifier = Modifier.size(SwitchDefaults.IconSize),
+                      tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                  }
                 }
               }
-            }
-          )
+            )
+          }
         }
       }
     }
