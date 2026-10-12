@@ -832,11 +832,23 @@ fun FolderSortDialog(
     onSortTypeChange = { typeName ->
       FolderSortType.entries
         .find { it.displayName == typeName }
-        ?.let(onSortTypeChange)
+        ?.let { newType ->
+          if (newType == sortType) {
+            val newOrder = if (sortOrder.isAscending) SortOrder.Descending else SortOrder.Ascending
+            browserPreferences.saveFolderSortOrder(newType, newOrder)
+            onSortOrderChange(newOrder)
+          } else {
+            browserPreferences.setFolderSortType(newType)
+            onSortTypeChange(newType)
+            onSortOrderChange(browserPreferences.getFolderSortOrder(newType))
+          }
+        }
     },
     sortOrderAsc = sortOrder.isAscending,
     onSortOrderChange = { isAsc ->
-      onSortOrderChange(if (isAsc) SortOrder.Ascending else SortOrder.Descending)
+      val newOrder = if (isAsc) SortOrder.Ascending else SortOrder.Descending
+      browserPreferences.saveFolderSortOrder(sortType, newOrder)
+      onSortOrderChange(newOrder)
     },
     types = listOf(FolderSortType.Title.displayName, FolderSortType.Duration.displayName, FolderSortType.Date.displayName, FolderSortType.Size.displayName),
     typeLabels = listOf(stringResource(FolderSortType.Title.stringRes), stringResource(FolderSortType.Duration.stringRes), stringResource(FolderSortType.Date.stringRes), stringResource(FolderSortType.Size.stringRes)),
@@ -1046,11 +1058,23 @@ fun VideoSortDialog(
     title = stringResource(R.string.sort_and_view_options),
     sortType = sortType.displayName,
     onSortTypeChange = { typeName ->
-      VideoSortType.entries.find { it.displayName == typeName }?.let(onSortTypeChange)
+      VideoSortType.entries.find { it.displayName == typeName }?.let { newType ->
+        if (newType == sortType) {
+          val newOrder = if (sortOrder.isAscending) SortOrder.Descending else SortOrder.Ascending
+          browserPreferences.saveVideoSortOrder(newType, newOrder)
+          onSortOrderChange(newOrder)
+        } else {
+          browserPreferences.setVideoSortType(newType)
+          onSortTypeChange(newType)
+          onSortOrderChange(browserPreferences.getVideoSortOrder(newType))
+        }
+      }
     },
     sortOrderAsc = sortOrder.isAscending,
     onSortOrderChange = { isAsc ->
-      onSortOrderChange(if (isAsc) SortOrder.Ascending else SortOrder.Descending)
+      val newOrder = if (isAsc) SortOrder.Ascending else SortOrder.Descending
+      browserPreferences.saveVideoSortOrder(sortType, newOrder)
+      onSortOrderChange(newOrder)
     },
     types = listOf(VideoSortType.Title.displayName, VideoSortType.Duration.displayName, VideoSortType.Date.displayName, VideoSortType.Size.displayName),
     typeLabels = listOf(stringResource(VideoSortType.Title.stringRes), stringResource(VideoSortType.Duration.stringRes), stringResource(VideoSortType.Date.stringRes), stringResource(VideoSortType.Size.stringRes)),
@@ -1259,16 +1283,19 @@ fun FileSystemSortDialog(
     title = stringResource(R.string.sort_and_view_options),
     sortType = folderSortType.displayName,
     onSortTypeChange = { typeName ->
-      FolderSortType.entries.find { it.displayName == typeName }?.let {
-        browserPreferences.folderSortType.set(it)
+      FolderSortType.entries.find { it.displayName == typeName }?.let { newType ->
+        if (newType == folderSortType) {
+          val newOrder = if (folderSortOrder.isAscending) SortOrder.Descending else SortOrder.Ascending
+          browserPreferences.saveFolderSortOrder(newType, newOrder)
+        } else {
+          browserPreferences.setFolderSortType(newType)
+        }
       }
     },
     sortOrderAsc = folderSortOrder.isAscending,
     onSortOrderChange = { isAsc ->
-      browserPreferences.folderSortOrder.set(
-        if (isAsc) SortOrder.Ascending
-        else SortOrder.Descending,
-      )
+      val newOrder = if (isAsc) SortOrder.Ascending else SortOrder.Descending
+      browserPreferences.saveFolderSortOrder(folderSortType, newOrder)
     },
     types = listOf(FolderSortType.Title.displayName, FolderSortType.Duration.displayName, FolderSortType.Date.displayName, FolderSortType.Size.displayName),
     typeLabels = listOf(stringResource(FolderSortType.Title.stringRes), stringResource(FolderSortType.Duration.stringRes), stringResource(FolderSortType.Date.stringRes), stringResource(FolderSortType.Size.stringRes)),
@@ -1432,15 +1459,19 @@ fun NetworkSortDialog(
     title = stringResource(R.string.sort_and_view_options),
     sortType = sortType.displayName,
     onSortTypeChange = { typeName ->
-      FolderSortType.entries.find { it.displayName == typeName }?.let {
-        browserPreferences.networkSortType.set(it)
+      FolderSortType.entries.find { it.displayName == typeName }?.let { newType ->
+        if (newType == sortType) {
+          val newOrder = if (sortOrder.isAscending) SortOrder.Descending else SortOrder.Ascending
+          browserPreferences.saveNetworkSortOrder(newType, newOrder)
+        } else {
+          browserPreferences.setNetworkSortType(newType)
+        }
       }
     },
     sortOrderAsc = sortOrder.isAscending,
     onSortOrderChange = { isAsc ->
-      browserPreferences.networkSortOrder.set(
-        if (isAsc) SortOrder.Ascending else SortOrder.Descending,
-      )
+      val newOrder = if (isAsc) SortOrder.Ascending else SortOrder.Descending
+      browserPreferences.saveNetworkSortOrder(sortType, newOrder)
     },
     types = listOf(FolderSortType.Title.displayName, FolderSortType.Date.displayName, FolderSortType.Size.displayName),
     typeLabels = listOf(stringResource(FolderSortType.Title.stringRes), stringResource(FolderSortType.Date.stringRes), stringResource(FolderSortType.Size.stringRes)),

@@ -15,14 +15,97 @@ class BrowserPreferences(
   // Folder sorting preferences
   val folderSortType = preferenceStore.getEnum("folder_sort_type", FolderSortType.Title)
   val folderSortOrder = preferenceStore.getEnum("folder_sort_order", SortOrder.Ascending)
+  val folderSortOrderTitle = preferenceStore.getEnum("folder_sort_order_title", SortOrder.Ascending)
+  val folderSortOrderDuration = preferenceStore.getEnum("folder_sort_order_duration", SortOrder.Descending)
+  val folderSortOrderDate = preferenceStore.getEnum("folder_sort_order_date", SortOrder.Descending)
+  val folderSortOrderSize = preferenceStore.getEnum("folder_sort_order_size", SortOrder.Descending)
+  val folderSortOrderCount = preferenceStore.getEnum("folder_sort_order_count", SortOrder.Descending)
+
+  fun getFolderSortOrder(type: FolderSortType): SortOrder =
+    when (type) {
+      FolderSortType.Title -> folderSortOrderTitle.get()
+      FolderSortType.Duration -> folderSortOrderDuration.get()
+      FolderSortType.Date -> folderSortOrderDate.get()
+      FolderSortType.Size -> folderSortOrderSize.get()
+      FolderSortType.VideoCount -> folderSortOrderCount.get()
+    }
+
+  fun saveFolderSortOrder(type: FolderSortType, order: SortOrder) {
+    when (type) {
+      FolderSortType.Title -> folderSortOrderTitle.set(order)
+      FolderSortType.Duration -> folderSortOrderDuration.set(order)
+      FolderSortType.Date -> folderSortOrderDate.set(order)
+      FolderSortType.Size -> folderSortOrderSize.set(order)
+      FolderSortType.VideoCount -> folderSortOrderCount.set(order)
+    }
+    folderSortOrder.set(order)
+  }
+
+  fun setFolderSortType(type: FolderSortType) {
+    folderSortType.set(type)
+    folderSortOrder.set(getFolderSortOrder(type))
+  }
 
   // Video sorting preferences
   val videoSortType = preferenceStore.getEnum("video_sort_type", VideoSortType.Title)
   val videoSortOrder = preferenceStore.getEnum("video_sort_order", SortOrder.Ascending)
+  val videoSortOrderTitle = preferenceStore.getEnum("video_sort_order_title", SortOrder.Ascending)
+  val videoSortOrderDuration = preferenceStore.getEnum("video_sort_order_duration", SortOrder.Descending)
+  val videoSortOrderDate = preferenceStore.getEnum("video_sort_order_date", SortOrder.Descending)
+  val videoSortOrderSize = preferenceStore.getEnum("video_sort_order_size", SortOrder.Descending)
+
+  fun getVideoSortOrder(type: VideoSortType): SortOrder =
+    when (type) {
+      VideoSortType.Title -> videoSortOrderTitle.get()
+      VideoSortType.Duration -> videoSortOrderDuration.get()
+      VideoSortType.Date -> videoSortOrderDate.get()
+      VideoSortType.Size -> videoSortOrderSize.get()
+    }
+
+  fun saveVideoSortOrder(type: VideoSortType, order: SortOrder) {
+    when (type) {
+      VideoSortType.Title -> videoSortOrderTitle.set(order)
+      VideoSortType.Duration -> videoSortOrderDuration.set(order)
+      VideoSortType.Date -> videoSortOrderDate.set(order)
+      VideoSortType.Size -> videoSortOrderSize.set(order)
+    }
+    videoSortOrder.set(order)
+  }
+
+  fun setVideoSortType(type: VideoSortType) {
+    videoSortType.set(type)
+    videoSortOrder.set(getVideoSortOrder(type))
+  }
 
   // Network sorting preferences
   val networkSortType = preferenceStore.getEnum("network_sort_type", FolderSortType.Title)
   val networkSortOrder = preferenceStore.getEnum("network_sort_order", SortOrder.Ascending)
+  val networkSortOrderTitle = preferenceStore.getEnum("network_sort_order_title", SortOrder.Ascending)
+  val networkSortOrderDate = preferenceStore.getEnum("network_sort_order_date", SortOrder.Descending)
+  val networkSortOrderSize = preferenceStore.getEnum("network_sort_order_size", SortOrder.Descending)
+
+  fun getNetworkSortOrder(type: FolderSortType): SortOrder =
+    when (type) {
+      FolderSortType.Title -> networkSortOrderTitle.get()
+      FolderSortType.Date -> networkSortOrderDate.get()
+      FolderSortType.Size -> networkSortOrderSize.get()
+      else -> SortOrder.Ascending
+    }
+
+  fun saveNetworkSortOrder(type: FolderSortType, order: SortOrder) {
+    when (type) {
+      FolderSortType.Title -> networkSortOrderTitle.set(order)
+      FolderSortType.Date -> networkSortOrderDate.set(order)
+      FolderSortType.Size -> networkSortOrderSize.set(order)
+      else -> {}
+    }
+    networkSortOrder.set(order)
+  }
+
+  fun setNetworkSortType(type: FolderSortType) {
+    networkSortType.set(type)
+    networkSortOrder.set(getNetworkSortOrder(type))
+  }
 
   val folderViewMode = preferenceStore.getEnum("folder_view_mode", FolderViewMode.AlbumView)
 
