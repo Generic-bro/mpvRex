@@ -104,4 +104,29 @@ class UpdateFeatureTest {
         assertEquals("https://mpvrex.github.io/REX-Player/REX-Player-preview-r1010-arm64-v8a.apk", arm64.downloadUrl)
         assertEquals(40L * 1024 * 1024, arm64.size)
     }
+
+    @Test
+    fun selectBestApkAsset_selectsMatchingArchOrFallback() {
+        val assets = listOf(
+            Asset("url1", "REX-Player-preview-r1010-universal.apk", 101L * 1024 * 1024, "application/vnd.android.package-archive"),
+            Asset("url2", "REX-Player-preview-r1010-arm64-v8a.apk", 40L * 1024 * 1024, "application/vnd.android.package-archive"),
+            Asset("url3", "REX-Player-preview-r1010-armeabi-v7a.apk", 38L * 1024 * 1024, "application/vnd.android.package-archive"),
+            Asset("url4", "REX-Player-preview-r1010-x86.apk", 41L * 1024 * 1024, "application/vnd.android.package-archive"),
+            Asset("url5", "REX-Player-preview-r1010-x86_64.apk", 41L * 1024 * 1024, "application/vnd.android.package-archive")
+        )
+
+        val bestArm64 = UpdateManager.selectBestApkAsset(assets, "arm64-v8a")
+        assertNotNull(bestArm64)
+        assertEquals("REX-Player-preview-r1010-arm64-v8a.apk", bestArm64!!.name)
+        assertEquals(40L * 1024 * 1024, bestArm64.size)
+
+        val bestArmV7 = UpdateManager.selectBestApkAsset(assets, "armeabi-v7a")
+        assertNotNull(bestArmV7)
+        assertEquals("REX-Player-preview-r1010-armeabi-v7a.apk", bestArmV7!!.name)
+
+        val fallbackUniversal = UpdateManager.selectBestApkAsset(assets, "mips")
+        assertNotNull(fallbackUniversal)
+        assertEquals("REX-Player-preview-r1010-universal.apk", fallbackUniversal!!.name)
+        assertEquals(101L * 1024 * 1024, fallbackUniversal.size)
+    }
 }

@@ -21,6 +21,11 @@ jobs:
       armeabi-v7a_size: ${{ steps.set_commit.outputs.armeabi-v7a_size }}
       x86_size: ${{ steps.set_commit.outputs.x86_size }}
       x86_64_size: ${{ steps.set_commit.outputs.x86_64_size }}
+      universal_bytes: ${{ steps.set_commit.outputs.universal_bytes }}
+      arm64-v8a_bytes: ${{ steps.set_commit.outputs.arm64-v8a_bytes }}
+      armeabi-v7a_bytes: ${{ steps.set_commit.outputs.armeabi-v7a_bytes }}
+      x86_bytes: ${{ steps.set_commit.outputs.x86_bytes }}
+      x86_64_bytes: ${{ steps.set_commit.outputs.x86_64_bytes }}
 
     steps:
       - name: Checkout repo
@@ -99,9 +104,11 @@ jobs:
             
             cp "$src" "$dest"
           
-            # Get file size in human-readable format
+            # Get file size in human-readable format and bytes
             size=$(du -h "$dest" | cut -f1)
+            bytes=$(stat -c%s "$dest")
             echo "${arch}_size=$size" >> $GITHUB_OUTPUT
+            echo "${arch}_bytes=$bytes" >> $GITHUB_OUTPUT
           done
 
       - name: Upload all artifacts
@@ -132,6 +139,18 @@ jobs:
           export ARMV7_SIZE="${{ needs.build.outputs.armeabi-v7a_size }}"
           export X86_SIZE="${{ needs.build.outputs.x86_size }}"
           export X86_64_SIZE="${{ needs.build.outputs.x86_64_size }}"
+          
+          export UNIVERSAL_BYTES=$(stat -c%s ./public/REX-Player-preview-r${COMMIT_COUNT}-universal.apk 2>/dev/null || echo "${{ needs.build.outputs.universal_bytes }}")
+          export ARM64_BYTES=$(stat -c%s ./public/REX-Player-preview-r${COMMIT_COUNT}-arm64-v8a.apk 2>/dev/null || echo "${{ needs.build.outputs.arm64-v8a_bytes }}")
+          export ARMV7_BYTES=$(stat -c%s ./public/REX-Player-preview-r${COMMIT_COUNT}-armeabi-v7a.apk 2>/dev/null || echo "${{ needs.build.outputs.armeabi-v7a_bytes }}")
+          export X86_BYTES=$(stat -c%s ./public/REX-Player-preview-r${COMMIT_COUNT}-x86.apk 2>/dev/null || echo "${{ needs.build.outputs.x86_bytes }}")
+          export X86_64_BYTES=$(stat -c%s ./public/REX-Player-preview-r${COMMIT_COUNT}-x86_64.apk 2>/dev/null || echo "${{ needs.build.outputs.x86_64_bytes }}")
+          
+          export UNIVERSAL_BYTES=${UNIVERSAL_BYTES:-0}
+          export ARM64_BYTES=${ARM64_BYTES:-0}
+          export ARMV7_BYTES=${ARMV7_BYTES:-0}
+          export X86_BYTES=${X86_BYTES:-0}
+          export X86_64_BYTES=${X86_64_BYTES:-0}
           
           envsubst < .github/workflows/preview.template.html > ./public/index.html
           envsubst < .github/workflows/preview.template.json > ./public/version.json

@@ -184,6 +184,48 @@ class UpdateManager(
                 htmlUrl = PREVIEW_PAGE_URL
             )
         }
+
+        fun getDeviceArchitecture(): String {
+            // Get the primary ABI (Application Binary Interface)
+            val primaryAbi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Build.SUPPORTED_ABIS[0]
+            } else {
+                @Suppress("DEPRECATION")
+                Build.CPU_ABI
+            }
+
+            // Map Android ABI names to APK naming convention
+            return when (primaryAbi) {
+                "arm64-v8a" -> "arm64-v8a"
+                "armeabi-v7a" -> "armeabi-v7a"
+                "x86" -> "x86"
+                "x86_64" -> "x86_64"
+                else -> "universal" // Fallback for unknown architectures
+            }
+        }
+
+        fun selectBestApkAsset(assets: List<Asset>, targetArch: String = getDeviceArchitecture()): Asset? {
+            // First, try to find architecture-specific APK
+            val archSpecificApk = assets.firstOrNull { asset ->
+                asset.name.endsWith(".apk") && asset.name.contains(targetArch, ignoreCase = true)
+            }
+
+            if (archSpecificApk != null) {
+                return archSpecificApk
+            }
+
+            // Fallback to universal APK
+            val universalApk = assets.firstOrNull { asset ->
+                asset.name.endsWith(".apk") && asset.name.contains("universal", ignoreCase = true)
+            }
+
+            if (universalApk != null) {
+                return universalApk
+            }
+
+            // Last resort: any APK
+            return assets.firstOrNull { it.name.endsWith(".apk") }
+        }
     }
 
     suspend fun checkForUpdate(forceShow: Boolean = false): Release? {
@@ -212,7 +254,7 @@ class UpdateManager(
         }
 
         return if (isNewerVersion(remoteVersion, currentVersion)) {
-            release
+            ensureAssetSizes(release)
         } else {
             null
         }
@@ -230,7 +272,7 @@ class UpdateManager(
 
         val currentCommitCount = getCurrentCommitCount()
         return if (isNewerPreviewVersion(remoteVersion, currentCommitCount)) {
-            release
+            ensureAssetSizes(release)
         } else {
             null
         }
@@ -244,7 +286,11 @@ class UpdateManager(
                 if (response.isSuccessful) {
                     val bodyString = response.body.string()
                     if (bodyString.isNotBlank()) {
-                        return@withContext json.decodeFromString<Release>(bodyString)
+                        val release = json.decodeFromString<Release>(bodyString)
+                        // If version.json assets already have valid sizes (> 0), use directly
+                        if (release.assets.isNotEmpty() && release.assets.any { it.size > 0L }) {
+                            return@withContext release
+                        }
                     }
                 }
             }
@@ -307,47 +353,32 @@ class UpdateManager(
         return downloadApk(asset.downloadUrl, destination)
     }
 
-    private fun selectBestApkAsset(assets: List<Asset>): Asset? {
-        val deviceArch = getDeviceArchitecture()
-        
-        // First, try to find architecture-specific APK
-        val archSpecificApk = assets.firstOrNull { asset ->
-            asset.name.endsWith(".apk") && asset.name.contains(deviceArch, ignoreCase = true)
+    private suspend fun resolveAssetSize(asset: Asset): Long = withContext(Dispatchers.IO) {
+        if (asset.size > 0L) return@withContext asset.size
+        try {
+            val headRequest = Request.Builder().url(asset.downloadUrl).head().build()
+            client.newCall(headRequest).execute().use { response ->
+                val len = response.header("Content-Length")?.toLongOrNull()
+                if (len != null && len > 0L) return@withContext len
+            }
+        } catch (_: Exception) {
+            // Ignore error
         }
-        
-        if (archSpecificApk != null) {
-            return archSpecificApk
-        }
-        
-        // Fallback to universal APK
-        val universalApk = assets.firstOrNull { asset ->
-            asset.name.endsWith(".apk") && asset.name.contains("universal", ignoreCase = true)
-        }
-        
-        if (universalApk != null) {
-            return universalApk
-        }
-        
-        // Last resort: any APK
-        return assets.firstOrNull { it.name.endsWith(".apk") }
+        asset.size
     }
 
-    private fun getDeviceArchitecture(): String {
-        // Get the primary ABI (Application Binary Interface)
-        val primaryAbi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Build.SUPPORTED_ABIS[0]
+    private suspend fun ensureAssetSizes(release: Release): Release {
+        val bestAsset = selectBestApkAsset(release.assets) ?: return release
+        if (bestAsset.size > 0L) return release
+
+        val resolvedSize = resolveAssetSize(bestAsset)
+        return if (resolvedSize > 0L) {
+            val updatedAssets = release.assets.map {
+                if (it.downloadUrl == bestAsset.downloadUrl) it.copy(size = resolvedSize) else it
+            }
+            release.copy(assets = updatedAssets)
         } else {
-            @Suppress("DEPRECATION")
-            Build.CPU_ABI
-        }
-        
-        // Map Android ABI names to your APK naming convention
-        return when (primaryAbi) {
-            "arm64-v8a" -> "arm64-v8a"
-            "armeabi-v7a" -> "armeabi-v7a"
-            "x86" -> "x86"
-            "x86_64" -> "x86_64"
-            else -> "universal" // Fallback for unknown architectures
+            release
         }
     }
 
@@ -619,7 +650,8 @@ fun UpdateDialog(
     onAction: () -> Unit,
     onIgnore: () -> Unit
 ) {
-    val downloadSize = release.assets.find { it.name.endsWith(".apk") }?.size ?: 0L
+    val bestAsset = UpdateManager.selectBestApkAsset(release.assets)
+    val downloadSize = bestAsset?.size ?: release.assets.firstOrNull { it.name.endsWith(".apk") }?.size ?: 0L
     val formattedDate = formatDate(release.publishedAt)
 
     AlertDialog(
@@ -658,7 +690,10 @@ fun UpdateDialog(
                     InfoRow(label = stringResource(R.string.update_current_version), value = currentVersion)
                     InfoRow(label = stringResource(R.string.update_latest_version), value = release.tagName.removePrefix("v"))
                     InfoRow(label = stringResource(R.string.update_release_date), value = formattedDate)
-                    InfoRow(label = stringResource(R.string.update_size), value = MediaFormatter.formatFileSize(downloadSize))
+                    InfoRow(
+                        label = stringResource(R.string.update_size),
+                        value = if (downloadSize > 0L) MediaFormatter.formatFileSize(downloadSize) else "--"
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
