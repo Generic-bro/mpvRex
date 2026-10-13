@@ -43,6 +43,7 @@ import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.repository.NetworkRepository
 import xyz.mpv.rex.utils.update.UpdateDialog
+import xyz.mpv.rex.utils.update.UpdateManager
 import xyz.mpv.rex.utils.update.UpdateViewModel
 import xyz.mpv.rex.ui.browser.MainScreen
 import xyz.mpv.rex.ui.theme.DarkMode
@@ -189,7 +190,14 @@ class MainActivity : ComponentActivity() {
     @Suppress("UNCHECKED_CAST")
     val typedBackstack = backstack as NavBackStack<Screen>
 
-    val currentVersion = BuildConfig.VERSION_NAME.replace("-dev", "")
+    val currentVersion = if (UpdateManager.isPreviewBuild()) {
+      val count = BuildConfig.GIT_COUNT.takeIf { it > 0 }
+        ?: BuildConfig.VERSION_NAME.substringAfterLast('-', "").toIntOrNull()
+        ?: 0
+      "r$count"
+    } else {
+      BuildConfig.VERSION_NAME.replace("-dev", "")
+    }
 
     // Conditionally initialize update feature based on build config
     val updateViewModel: UpdateViewModel? = if (BuildConfig.ENABLE_UPDATE_FEATURE) {
@@ -303,7 +311,11 @@ class MainActivity : ComponentActivity() {
                 context.startActivity(
                   Intent(
                     Intent.ACTION_VIEW, 
-                    (release.htmlUrl ?: "https://github.com/mpvRex/REX-Player/releases/latest").toUri()
+                    (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
+                      UpdateManager.PREVIEW_PAGE_URL
+                    } else {
+                      "https://github.com/mpvRex/REX-Player/releases/latest"
+                    }).toUri()
                   )
                 )
                 // updateViewModel.downloadUpdate(release) // Kept in code but disabled for now
@@ -325,7 +337,11 @@ class MainActivity : ComponentActivity() {
                 context.startActivity(
                   Intent(
                     Intent.ACTION_VIEW, 
-                    (release.htmlUrl ?: "https://github.com/mpvRex/REX-Player/releases/latest").toUri()
+                    (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
+                      UpdateManager.PREVIEW_PAGE_URL
+                    } else {
+                      "https://github.com/mpvRex/REX-Player/releases/latest"
+                    }).toUri()
                   )
                 )
                 // updateViewModel.installUpdate(release) // Kept in code but disabled for now

@@ -29,6 +29,7 @@ android {
     // Enable update feature by default
     buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
     buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
+    buildConfigField("boolean", "IS_PREVIEW", "false")
   }
 
   dependenciesInfo {
@@ -77,6 +78,7 @@ android {
       signingConfig = null
       applicationIdSuffix = ".preview"
       versionNameSuffix = "-${getCommitCount()}"
+      buildConfigField("boolean", "IS_PREVIEW", "true")
     }
 
     named("debug") {

@@ -85,13 +85,122 @@ class UpdateManager(
     private val client = OkHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
 
+    companion object {
+        const val PREVIEW_PAGE_URL = "https://mpvrex.github.io/REX-Player/"
+        const val PREVIEW_JSON_URL = "https://mpvrex.github.io/REX-Player/version.json"
+        const val RELEASE_API_URL = "https://api.github.com/repos/mpvRex/REX-Player/releases/latest"
+
+        fun isPreviewBuild(): Boolean {
+            return BuildConfig.IS_PREVIEW || BuildConfig.BUILD_TYPE == "preview" || BuildConfig.APPLICATION_ID.endsWith(".preview")
+        }
+
+        fun getCurrentCommitCount(): Int {
+            if (BuildConfig.GIT_COUNT > 0) return BuildConfig.GIT_COUNT
+            val suffix = BuildConfig.VERSION_NAME.substringAfterLast('-', "")
+            return suffix.toIntOrNull() ?: 0
+        }
+
+        fun parseCommitCount(tag: String): Int? {
+            val clean = tag.trim().removePrefix("r").removePrefix("R").removePrefix("v").removePrefix("V")
+            return clean.toIntOrNull()
+        }
+
+        fun isNewerPreviewVersion(remoteTag: String, currentCommitCount: Int): Boolean {
+            val remoteCount = parseCommitCount(remoteTag) ?: return false
+            return if (currentCommitCount > 0) {
+                remoteCount > currentCommitCount
+            } else {
+                false
+            }
+        }
+
+        fun parseFileSizeToBytes(sizeStr: String): Long {
+            val trimmed = sizeStr.trim().uppercase(Locale.US)
+            return try {
+                when {
+                    trimmed.endsWith("GB") || trimmed.endsWith("G") -> {
+                        val num = trimmed.removeSuffix("GB").removeSuffix("G").trim().toDouble()
+                        (num * 1024 * 1024 * 1024).toLong()
+                    }
+                    trimmed.endsWith("MB") || trimmed.endsWith("M") -> {
+                        val num = trimmed.removeSuffix("MB").removeSuffix("M").trim().toDouble()
+                        (num * 1024 * 1024).toLong()
+                    }
+                    trimmed.endsWith("KB") || trimmed.endsWith("K") -> {
+                        val num = trimmed.removeSuffix("KB").removeSuffix("K").trim().toDouble()
+                        (num * 1024).toLong()
+                    }
+                    trimmed.endsWith("B") -> {
+                        trimmed.removeSuffix("B").trim().toLong()
+                    }
+                    else -> trimmed.toLongOrNull() ?: 0L
+                }
+            } catch (_: Exception) {
+                0L
+            }
+        }
+
+        fun parsePreviewHtml(html: String): Release {
+            val versionRegex = Regex("""class=["']version-badge["']>\s*(r?\d+)\s*<""", RegexOption.IGNORE_CASE)
+            val versionMatch = versionRegex.find(html)
+            val tag = versionMatch?.groupValues?.get(1) ?: throw IOException("Could not find preview version in page")
+            val normalizedTag = if (tag.startsWith("r", ignoreCase = true)) tag else "r$tag"
+
+            val timeRegex = Regex("""Build time:\s*([^\n<]+)""", RegexOption.IGNORE_CASE)
+            val timeMatch = timeRegex.find(html)
+            val buildTime = timeMatch?.groupValues?.get(1)?.trim() ?: ""
+
+            val apkRegex = Regex(
+                """(?:class=["']item-size["']>\s*([^<]+)\s*</div>\s*)?<a\s+[^>]*href=["'](REX-Player-preview-[^"']+\.apk)["']""",
+                RegexOption.IGNORE_CASE
+            )
+            val assets = apkRegex.findAll(html).map { matchResult ->
+                val sizeStr = matchResult.groupValues[1]
+                val fileName = matchResult.groupValues[2]
+                val sizeBytes = parseFileSizeToBytes(sizeStr)
+                val downloadUrl = if (fileName.startsWith("http://") || fileName.startsWith("https://")) {
+                    fileName
+                } else {
+                    PREVIEW_PAGE_URL.trimEnd('/') + "/" + fileName.trimStart('/')
+                }
+                Asset(
+                    downloadUrl = downloadUrl,
+                    name = fileName,
+                    size = sizeBytes,
+                    contentType = "application/vnd.android.package-archive"
+                )
+            }.toList()
+
+            if (assets.isEmpty()) {
+                throw IOException("No preview APK assets found in preview page")
+            }
+
+            return Release(
+                tagName = normalizedTag,
+                name = "REX Player Preview $normalizedTag",
+                body = "Nightly preview build automatically generated from master branch.",
+                publishedAt = buildTime,
+                assets = assets,
+                htmlUrl = PREVIEW_PAGE_URL
+            )
+        }
+    }
+
     suspend fun checkForUpdate(forceShow: Boolean = false): Release? {
         // Return null immediately if update feature is disabled (F-Droid flavor)
         if (!BuildConfig.ENABLE_UPDATE_FEATURE) {
             return null
         }
-        
-        val release = getLatestRelease("https://api.github.com/repos/mpvRex/REX-Player/releases/latest")
+
+        return if (isPreviewBuild()) {
+            checkPreviewUpdate(forceShow)
+        } else {
+            checkReleaseUpdate(forceShow)
+        }
+    }
+
+    private suspend fun checkReleaseUpdate(forceShow: Boolean): Release? {
+        val release = getLatestRelease(RELEASE_API_URL)
         val currentVersion = BuildConfig.VERSION_NAME.replace("-dev", "")
         val remoteVersion = release.tagName.removePrefix("v")
         val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
@@ -106,6 +215,48 @@ class UpdateManager(
             release
         } else {
             null
+        }
+    }
+
+    private suspend fun checkPreviewUpdate(forceShow: Boolean): Release? {
+        val release = getLatestPreviewRelease() ?: return null
+        val remoteVersion = release.tagName.removePrefix("v")
+        val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
+        val ignoredVersion = prefs.getString("ignored_version", null)
+
+        if (!forceShow && ignoredVersion == remoteVersion) {
+            return null
+        }
+
+        val currentCommitCount = getCurrentCommitCount()
+        return if (isNewerPreviewVersion(remoteVersion, currentCommitCount)) {
+            release
+        } else {
+            null
+        }
+    }
+
+    private suspend fun getLatestPreviewRelease(): Release? = withContext(Dispatchers.IO) {
+        // Try version.json first
+        try {
+            val jsonRequest = Request.Builder().url(PREVIEW_JSON_URL).build()
+            client.newCall(jsonRequest).execute().use { response ->
+                if (response.isSuccessful) {
+                    val bodyString = response.body.string()
+                    if (bodyString.isNotBlank()) {
+                        return@withContext json.decodeFromString<Release>(bodyString)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Fall back to parsing preview web page HTML
+        }
+
+        val pageRequest = Request.Builder().url(PREVIEW_PAGE_URL).build()
+        client.newCall(pageRequest).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Failed to fetch preview page: $response")
+            val html = response.body.string()
+            parsePreviewHtml(html)
         }
     }
 
@@ -588,15 +739,21 @@ private fun InfoRow(label: String, value: String) {
 }
 
 private fun formatDate(dateString: String): String {
-    return try {
-        // GitHub API returns ISO 8601 format: "2024-01-15T10:30:00Z"
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
-        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
-        val date = inputFormat.parse(dateString) ?: return dateString
-
-        val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
-        outputFormat.format(date)
-    } catch (e: Exception) {
-        dateString
+    val formats = listOf(
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") },
+        SimpleDateFormat("yyyy-MM-dd HH:mm 'UTC'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") },
+        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+    )
+    for (format in formats) {
+        try {
+            val date = format.parse(dateString)
+            if (date != null) {
+                val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+                return outputFormat.format(date)
+            }
+        } catch (_: Exception) {
+            // Try next format
+        }
     }
+    return dateString
 }
