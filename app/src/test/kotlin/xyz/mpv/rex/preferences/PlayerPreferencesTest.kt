@@ -148,5 +148,24 @@ class PlayerPreferencesTest {
     preferences.autoResumeOnAsk.delete()
     assertTrue(preferences.autoResumeOnAsk.get())
   }
+
+  @Test
+  fun lastMoreSheetTab_defaultsToZero_andPersistsChanges() {
+    val store = InMemoryPreferenceStore()
+    val preferences = PlayerPreferences(store)
+
+    assertEquals("last_more_sheet_tab", preferences.lastMoreSheetTab.key())
+    assertEquals(0, preferences.lastMoreSheetTab.defaultValue())
+    assertEquals(0, preferences.lastMoreSheetTab.get())
+
+    preferences.lastMoreSheetTab.set(2)
+    assertEquals(2, preferences.lastMoreSheetTab.get())
+
+    preferences.lastMoreSheetTab.set(4)
+    assertEquals(4, preferences.lastMoreSheetTab.get())
+
+    preferences.lastMoreSheetTab.delete()
+    assertEquals(0, preferences.lastMoreSheetTab.get())
+  }
 }
 

@@ -378,7 +378,7 @@ class PlayerViewModel(
     )
 
   val sheetShown = MutableStateFlow(Sheets.None)
-  val lastMoreSheetTab = MutableStateFlow(0) // Default to Controls tab (index 0)
+  val lastMoreSheetTab = playerPreferences.lastMoreSheetTab
   val panelShown = MutableStateFlow(Panels.None)
   val isSpeedLocked = MutableStateFlow(false)
 

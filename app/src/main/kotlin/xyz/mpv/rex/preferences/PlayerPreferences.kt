@@ -131,4 +131,7 @@ class PlayerPreferences(
 
   // External media controls
   val disableMediaButtons = preferenceStore.getBoolean("disable_media_buttons", false)
+
+  // More sheet last opened tab
+  val lastMoreSheetTab = preferenceStore.getInt("last_more_sheet_tab", 0)
 }

@@ -122,17 +122,6 @@ fun MoreSheet(
   onShowSheet: (Sheets) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val lastTab by viewModel.lastMoreSheetTab.collectAsState()
-  val pagerState = rememberPagerState(initialPage = lastTab.coerceIn(0, 4)) { 5 }
-  val scope = rememberCoroutineScope()
-
-  // Persist tab change
-  LaunchedEffect(pagerState) {
-    snapshotFlow { pagerState.currentPage }.collect {
-      viewModel.lastMoreSheetTab.value = it
-    }
-  }
-
   val tabs = listOf(
     stringResource(R.string.player_sheets_tab_controls),
     stringResource(R.string.player_sheets_tab_aesthetics),
@@ -140,6 +129,19 @@ fun MoreSheet(
     stringResource(R.string.player_sheets_tab_settings),
     stringResource(R.string.player_sheets_tab_interaction),
   )
+
+  val initialTab = remember { viewModel.lastMoreSheetTab.get().coerceIn(0, tabs.lastIndex) }
+  val pagerState = rememberPagerState(initialPage = initialTab) { tabs.size }
+  val scope = rememberCoroutineScope()
+
+  // Persist tab change
+  LaunchedEffect(pagerState) {
+    snapshotFlow { pagerState.currentPage }.collect {
+      if (viewModel.lastMoreSheetTab.get() != it) {
+        viewModel.lastMoreSheetTab.set(it)
+      }
+    }
+  }
 
   PlayerSheet(
     onDismissRequest,
