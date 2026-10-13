@@ -134,48 +134,7 @@ jobs:
           export X86_64_SIZE="${{ needs.build.outputs.x86_64_size }}"
           
           envsubst < .github/workflows/preview.template.html > ./public/index.html
-
-          cat <<EOF > ./public/version.json
-{
-  "tag_name": "r${COMMIT_COUNT}",
-  "name": "REX Player Preview r${COMMIT_COUNT}",
-  "body": "Nightly preview build automatically generated from master branch.",
-  "published_at": "${BUILD_TIME}",
-  "html_url": "https://mpvrex.github.io/REX-Player/",
-  "assets": [
-    {
-      "name": "REX-Player-preview-r${COMMIT_COUNT}-universal.apk",
-      "browser_download_url": "https://mpvrex.github.io/REX-Player/REX-Player-preview-r${COMMIT_COUNT}-universal.apk",
-      "size": 0,
-      "content_type": "application/vnd.android.package-archive"
-    },
-    {
-      "name": "REX-Player-preview-r${COMMIT_COUNT}-arm64-v8a.apk",
-      "browser_download_url": "https://mpvrex.github.io/REX-Player/REX-Player-preview-r${COMMIT_COUNT}-arm64-v8a.apk",
-      "size": 0,
-      "content_type": "application/vnd.android.package-archive"
-    },
-    {
-      "name": "REX-Player-preview-r${COMMIT_COUNT}-armeabi-v7a.apk",
-      "browser_download_url": "https://mpvrex.github.io/REX-Player/REX-Player-preview-r${COMMIT_COUNT}-armeabi-v7a.apk",
-      "size": 0,
-      "content_type": "application/vnd.android.package-archive"
-    },
-    {
-      "name": "REX-Player-preview-r${COMMIT_COUNT}-x86.apk",
-      "browser_download_url": "https://mpvrex.github.io/REX-Player/REX-Player-preview-r${COMMIT_COUNT}-x86.apk",
-      "size": 0,
-      "content_type": "application/vnd.android.package-archive"
-    },
-    {
-      "name": "REX-Player-preview-r${COMMIT_COUNT}-x86_64.apk",
-      "browser_download_url": "https://mpvrex.github.io/REX-Player/REX-Player-preview-r${COMMIT_COUNT}-x86_64.apk",
-      "size": 0,
-      "content_type": "application/vnd.android.package-archive"
-    }
-  ]
-}
-EOF
+          envsubst < .github/workflows/preview.template.json > ./public/version.json
 
 
       - name: Upload to GitHub Pages
