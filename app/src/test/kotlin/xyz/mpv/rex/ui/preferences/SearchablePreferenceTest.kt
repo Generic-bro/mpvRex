@@ -54,6 +54,7 @@ class SearchablePreferenceTest {
         R.string.pref_player_custom_skip_duration_title to "Custom skip duration",
         R.string.pref_player_gestures_swipe_to_subtitle_seek_title to "Swipe to subtitle seek",
         R.string.pref_player_gestures_move_subtitle_by_dragging_title to "Drag subtitle to reposition",
+        R.string.pref_player_gestures_pinch_to_resize_subtitle_title to "Pinch subtitle to resize",
         R.string.pref_player_remember_long_press_speed_title to "Remember adjusted speed",
         R.string.pref_player_show_speed_indicator_overlay to "Show Speed Indicator Overlay",
         R.string.pref_player_controls_disable_media_buttons_title to "Disable media buttons",

@@ -491,6 +491,7 @@ object PlayerPreferencesScreen : Screen {
             val horizontalSwipeToSeek by preferences.horizontalSwipeToSeek.collectAsState()
             val swipeToSubtitleSeek by preferences.swipeToSubtitleSeek.collectAsState()
             val moveSubtitleByDragging by preferences.moveSubtitleByDragging.collectAsState()
+            val pinchToResizeSubtitle by preferences.pinchToResizeSubtitle.collectAsState()
             val horizontalSwipeSensitivity by preferences.horizontalSwipeSensitivity.collectAsState()
             val holdForMultipleSpeed by preferences.holdForMultipleSpeed.collectAsState()
             val rememberLongPressSpeed by preferences.rememberLongPressSpeed.collectAsState()
@@ -575,6 +576,18 @@ object PlayerPreferencesScreen : Screen {
                   onValueChange = preferences.moveSubtitleByDragging::set,
                   title = { Text(stringResource(R.string.pref_player_gestures_move_subtitle_by_dragging_title)) },
                   summary = { Text(stringResource(R.string.pref_player_gestures_move_subtitle_by_dragging_summary)) },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_player_gestures_pinch_to_resize_subtitle_title,
+              ) {
+                SwitchPreference(
+                  value = pinchToResizeSubtitle,
+                  onValueChange = preferences.pinchToResizeSubtitle::set,
+                  title = { Text(stringResource(R.string.pref_player_gestures_pinch_to_resize_subtitle_title)) },
+                  summary = { Text(stringResource(R.string.pref_player_gestures_pinch_to_resize_subtitle_summary)) },
                 )
               }
 

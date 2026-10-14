@@ -759,6 +759,7 @@ fun GesturesTab() {
   val reverseDoubleTap by gesturePreferences.reverseDoubleTap.collectAsState()
   val swipeToSubtitleSeek by playerPreferences.swipeToSubtitleSeek.collectAsState()
   val moveSubtitleByDragging by playerPreferences.moveSubtitleByDragging.collectAsState()
+  val pinchToResizeSubtitle by playerPreferences.pinchToResizeSubtitle.collectAsState()
   val panAndZoomEnabled by playerPreferences.panAndZoomEnabled.collectAsState()
 
   Column(
@@ -845,6 +846,13 @@ fun GesturesTab() {
       description = stringResource(R.string.pref_player_gestures_move_subtitle_by_dragging_summary),
       checked = moveSubtitleByDragging,
       onCheckedChange = { playerPreferences.moveSubtitleByDragging.set(it) }
+    )
+
+    InteractionSwitch(
+      label = stringResource(R.string.pref_player_gestures_pinch_to_resize_subtitle_title),
+      description = stringResource(R.string.pref_player_gestures_pinch_to_resize_subtitle_summary),
+      checked = pinchToResizeSubtitle,
+      onCheckedChange = { playerPreferences.pinchToResizeSubtitle.set(it) }
     )
 
     InteractionSwitch(

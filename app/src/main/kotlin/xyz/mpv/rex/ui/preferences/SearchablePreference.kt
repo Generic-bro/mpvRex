@@ -562,6 +562,14 @@ object SearchablePreferences {
                 targetIndex = 7,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_player_gestures_pinch_to_resize_subtitle_title,
+                summaryRes = R.string.pref_player_gestures_pinch_to_resize_subtitle_summary,
+                keywords = listOf("subtitle", "pinch", "resize", "scale", "size", "gesture"),
+                category = "Player",
+                screen = PlayerPreferencesScreen,
+                targetIndex = 7,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_player_gestures_horizontal_swipe_sensitivity,
                 summaryRes = R.string.pref_player_gestures_horizontal_swipe_sensitivity_summary,
                 keywords = listOf("horizontal", "swipe", "sensitivity", "seek", "distance", "speed"),
