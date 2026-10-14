@@ -101,10 +101,10 @@ object PlayerControlsPreferencesScreen : Screen {
             appearancePrefs.parseButtons(bottomLState, mutableSetOf())
         }
         val portraitBottomButtons = remember(portraitBottomState) {
-            appearancePrefs.parseButtons(portraitBottomState, mutableSetOf())
+            appearancePrefs.parseButtons(portraitBottomState, mutableSetOf()).filter { it != PlayerButton.MORE_OPTIONS }
         }
         val moreSheetButtons = remember(moreSheetState, topRState, bottomRState, bottomLState, portraitBottomState) {
-            val manualOrder = appearancePrefs.parseButtons(moreSheetState, mutableSetOf())
+            val manualOrder = appearancePrefs.parseButtons(moreSheetState, mutableSetOf()).filter { it != PlayerButton.MORE_OPTIONS }
             val landscapeSet = (topRState.split(',') + bottomRState.split(',') + bottomLState.split(','))
                 .filter(String::isNotBlank)
                 .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
@@ -115,7 +115,7 @@ object PlayerControlsPreferencesScreen : Screen {
                 .toSet()
 
             val intersection = landscapeSet.intersect(portraitSet)
-            val orphans = allPlayerButtons.filter { it !in intersection }
+            val orphans = allPlayerButtons.filter { it != PlayerButton.NONE && it != PlayerButton.MORE_OPTIONS && it !in intersection }
             val orderedOrphans = manualOrder.filter { it in orphans }
             val remainingOrphans = orphans.filter { it !in orderedOrphans }
             orderedOrphans + remainingOrphans

@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -69,77 +71,86 @@ fun TopPlayerControlsPortrait(
     else -> if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
   }
 
-  Column {
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      ControlsGroup(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().height(42.dp),
-      ) {
-        ControlsButton(
-          icon = Icons.AutoMirrored.Default.ArrowBack,
-          onClick = onBackPress,
-          modifier = Modifier.size(38.dp),
-        )
+  ControlsGroup(
+    shape = RoundedCornerShape(16.dp),
+    modifier = Modifier.width(IntrinsicSize.Max).height(42.dp),
+  ) {
+    ControlsButton(
+      icon = Icons.AutoMirrored.Default.ArrowBack,
+      onClick = onBackPress,
+      modifier = Modifier.size(38.dp),
+    )
 
-        if (!hideBackground) {
-          Box(
-            modifier = Modifier
-              .width(1.dp)
-              .height(16.dp)
-              .background(
-                if (enableGlass) Color.White.copy(alpha = 0.18f)
-                else if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-              )
+    if (!hideBackground) {
+      Box(
+        modifier = Modifier
+          .width(1.dp)
+          .height(16.dp)
+          .background(
+            if (enableGlass) Color.White.copy(alpha = 0.18f)
+            else if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
           )
-        }
+      )
+    }
 
-        val titleInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val titleInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
 
-        androidx.compose.foundation.layout.Box(
-          modifier =
-            Modifier
-              .height(42.dp)
-              .weight(1f)
-              .clip(RoundedCornerShape(14.dp))
-              .clickable(
-                interactionSource = titleInteractionSource,
-                indication = ripple(bounded = true),
-                enabled = playlistModeEnabled,
-                onClick = {
-                  clickEvent()
-                  onOpenSheet(Sheets.Playlist)
-                },
-              )
-              .padding(horizontal = 8.dp),
-          contentAlignment = Alignment.CenterStart,
-        ) {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Text(
-              mediaTitle ?: "",
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-              style = MaterialTheme.typography.bodyMedium,
-              modifier = Modifier.weight(1f, fill = false),
-            )
-            viewModel.getPlaylistInfo()?.let { playlistInfo ->
-              Text(
-                " • $playlistInfo",
-                maxLines = 1,
-                overflow = TextOverflow.Visible,
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor.copy(alpha = 0.75f),
-              )
-            }
-          }
+    Box(
+      modifier =
+        Modifier
+          .fillMaxHeight()
+          .clip(RoundedCornerShape(14.dp))
+          .clickable(
+            interactionSource = titleInteractionSource,
+            indication = ripple(bounded = true),
+            enabled = playlistModeEnabled,
+            onClick = {
+              clickEvent()
+              onOpenSheet(Sheets.Playlist)
+            },
+          )
+          .padding(horizontal = 8.dp),
+      contentAlignment = Alignment.CenterStart,
+    ) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Text(
+          mediaTitle ?: "",
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          style = MaterialTheme.typography.bodyMedium,
+          modifier = Modifier.weight(1f, fill = false),
+        )
+        viewModel.getPlaylistInfo()?.let { playlistInfo ->
+          Text(
+            " • $playlistInfo",
+            maxLines = 1,
+            overflow = TextOverflow.Visible,
+            style = MaterialTheme.typography.bodySmall,
+            color = contentColor.copy(alpha = 0.75f),
+          )
         }
       }
     }
+  }
+}
+
+@Composable
+fun TopRightPlayerControlsPortrait(
+  onOpenSheet: (Sheets) -> Unit,
+  onOpenPanel: (Panels) -> Unit,
+) {
+  ControlsGroup(
+    shape = RoundedCornerShape(16.dp),
+  ) {
+    ControlsButton(
+      icon = Icons.Default.MoreVert,
+      onClick = { onOpenSheet(Sheets.More) },
+      onLongClick = { onOpenPanel(Panels.VideoFilters) },
+      modifier = Modifier.size(38.dp),
+    )
   }
 }
 

@@ -130,10 +130,12 @@ data class ControlLayoutEditorScreen(
             .filter(String::isNotBlank)
             .filter { it !in onBothScreens }
             .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+            .filter { it != PlayerButton.MORE_OPTIONS }
         } else {
           prefToEdit.get().split(',')
             .filter(String::isNotBlank)
             .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+            .filter { region != ControlRegion.PORTRAIT_BOTTOM || it != PlayerButton.MORE_OPTIONS }
         }
       )
     }
@@ -189,7 +191,12 @@ data class ControlLayoutEditorScreen(
     ) { padding ->
       ProvidePreferenceLocals {
         val gridState = rememberLazyGridState()
-        val availableButtons = remember { allPlayerButtons.filter { it != PlayerButton.NONE } }
+        val availableButtons = remember(region) {
+          allPlayerButtons.filter {
+            it != PlayerButton.NONE &&
+              ((region != ControlRegion.PORTRAIT_BOTTOM && region != ControlRegion.MORE_SHEET) || it != PlayerButton.MORE_OPTIONS)
+          }
+        }
         val reorderableState = rememberReorderableLazyGridState(gridState) { from, to ->
           val fromKey = from.key as? PlayerButton
           val toKey = to.key as? PlayerButton

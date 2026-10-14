@@ -333,6 +333,7 @@ fun PlayerControls(
         xyz.mpv.rex.preferences.PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
         xyz.mpv.rex.preferences.PlayerButton.SHUFFLE -> viewModel.hasPlaylistSupport()
         xyz.mpv.rex.preferences.PlayerButton.CURRENT_CHAPTER -> false
+        xyz.mpv.rex.preferences.PlayerButton.MORE_OPTIONS -> false
         xyz.mpv.rex.preferences.PlayerButton.NONE -> false
         else -> true
       }
@@ -1556,13 +1557,9 @@ fun PlayerControls(
               .constrainAs(topLeftControls) {
                 top.linkTo(parent.top, if (isPortrait) spacing.extraLarge else spacing.small)
                 start.linkTo(parent.start, spacing.large)
-                if (isPortrait) {
-                  width = Dimension.fillToConstraints
-                  end.linkTo(parent.end, spacing.large)
-                } else {
-                  width = Dimension.fillToConstraints
-                  end.linkTo(topRightControls.start, spacing.extraSmall)
-                }
+                width = Dimension.preferredWrapContent
+                end.linkTo(topRightControls.start, spacing.extraSmall)
+                horizontalBias = 0f
               },
         ) {
           if (isPortrait) {
@@ -1585,7 +1582,7 @@ fun PlayerControls(
         }
 
         AnimatedVisibility(
-          visible = controlsShown && !areControlsLocked && !isPortrait,
+          visible = controlsShown && !areControlsLocked,
           enter =
             if (!reduceMotion) {
               slideInHorizontally(playerControlsEnterAnimationSpec()) { it } +
@@ -1622,12 +1619,18 @@ fun PlayerControls(
                 }
               )
               .constrainAs(topRightControls) {
-                top.linkTo(parent.top, spacing.small)
+                top.linkTo(parent.top, if (isPortrait) spacing.extraLarge else spacing.small)
                 end.linkTo(parent.end, spacing.large)
               },
         ) {
-          TopRightPlayerControlsLandscape(
-            buttons = topRightButtons,
+          if (isPortrait) {
+            TopRightPlayerControlsPortrait(
+              onOpenSheet = onOpenSheet,
+              onOpenPanel = onOpenPanel,
+            )
+          } else {
+            TopRightPlayerControlsLandscape(
+              buttons = topRightButtons,
             chapters = chapters,
             currentChapter = currentChapter,
             isSpeedNonOne = isSpeedNonOne,
@@ -1644,6 +1647,7 @@ fun PlayerControls(
             activity = activity,
           )
         }
+      }
 
         AnimatedVisibility(
           visible = controlsShown && !areControlsLocked && !areSlidersShown,
