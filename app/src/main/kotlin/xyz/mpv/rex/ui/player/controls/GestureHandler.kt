@@ -281,6 +281,8 @@ fun GestureHandler(
         if (isVerticalGestureActive) return@pointerInput
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
+          // A tap that lands on a subtitle must still toggle the UI, so only step aside once the
+          // touch has actually become a subtitle drag/pinch (checked again inside the loop below).
           if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val downPosition = down.position
           val downTime = System.currentTimeMillis()
@@ -302,6 +304,10 @@ fun GestureHandler(
           do {
             val event = awaitPointerEvent()
             val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
+
+            // The touch started on the subtitle and has now become a real drag/pinch: abandon the
+            // tap so we do not consume the pointer the subtitle recognizer is using.
+            if (subtitleGate.isActive) break
 
             // Check if this is a drag (not a tap)
             val distance = sqrt(
@@ -451,7 +457,7 @@ fun GestureHandler(
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
-          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
+          if (subtitleGate.isCandidate) return@awaitEachGesture // this touch belongs to a subtitle
           val startPosition = down.position
 
           // Reset long press tracking at the start of each gesture
@@ -829,7 +835,7 @@ fun GestureHandler(
           var bh = 0f
 
           awaitFirstDown(requireUnconsumed = false)
-          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
+          if (subtitleGate.isCandidate) return@awaitEachGesture // this touch belongs to a subtitle
 
           do {
             val event = awaitPointerEvent()
@@ -901,7 +907,7 @@ fun GestureHandler(
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
-          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
+          if (subtitleGate.isCandidate) return@awaitEachGesture // this touch belongs to a subtitle
           var panning = false
           var prevX = down.position.x
           var prevY = down.position.y
@@ -987,6 +993,9 @@ fun GestureHandler(
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
+          // A horizontal swipe that starts on a subtitle (this is exactly the subtitle-seek zone,
+          // the top/bottom 25%) must keep working, so only step aside once the touch has actually
+          // become a vertical subtitle drag/pinch (checked again inside the loop below).
           if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val startPosition = down.position
           val startTime = System.currentTimeMillis()
@@ -1001,6 +1010,9 @@ fun GestureHandler(
           
           do {
             val event = awaitPointerEvent()
+            // The subtitle recognizer claimed the touch (it became a vertical drag/pinch): stop so
+            // we do not fight it. Any horizontal seek already in progress is wound down below.
+            if (subtitleGate.isActive) break
             val pointerCount = event.changes.count { it.pressed }
 
             if (pointerCount == 1) {
@@ -1020,7 +1032,9 @@ fun GestureHandler(
                   // and not conflicting with other gestures
                   if (gestureType == null && 
                       abs(deltaX) > 30f && 
-                      abs(deltaX) > abs(deltaY) * 2f && // Must be strongly horizontal
+                      // Flat enough to be a swipe: within 69° of horizontal (tan(70°) ≈ 2.75). The
+                      // steeper 70°..110° cone around vertical is left to the subtitle drag engine.
+                      abs(deltaY) < abs(deltaX) * 2.75f && 
                       timeSinceStart > 100L && // Avoid conflicts with double-tap
                       !isLongPressing && // Don't conflict with long press
                       !isDynamicSpeedControlActive && // Don't conflict with speed control

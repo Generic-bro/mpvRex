@@ -43,7 +43,10 @@ internal interface SubtitleGestureListener {
  * finger, lifting a finger, or going drag -> pinch -> drag can never make the subtitle jump,
  * and the remaining finger always keeps control.
  *
- * - One finger  : vertical drag (after [dragSlop]), 1:1 with the finger.
+ * - One finger  : vertical drag (after [dragSlop] and only while the motion is between 70° and 110°
+ *                 from horizontal, i.e. within 20° of vertical), 1:1 with the finger. A flatter
+ *                 motion (up to 69°) is left to the horizontal-swipe recognizer (subtitle seek) and
+ *                 never drags the subtitle.
  * - Two fingers : pinch resize (after [pinchSlop] change of finger distance).
  * - Extra fingers are ignored; the tracked pair stays stable while both are down.
  */
@@ -92,7 +95,15 @@ internal class SubtitleGestureEngine(
 
   // One-finger anchors.
   private var anchorY = 0f
+  private var anchorX = 0f
   private var anchorPosition = 0f
+
+  /**
+   * Set when the current one-finger motion is clearly horizontal. The finger is then treated as a
+   * horizontal swipe (subtitle seek) for the rest of that finger's press, so a later vertical wobble
+   * cannot turn it into a subtitle drag. Reset whenever a different finger takes over.
+   */
+  private var horizontal = false
 
   // Two-finger anchors.
   private var baseDistance = 0f
@@ -148,18 +159,36 @@ internal class SubtitleGestureEngine(
       idA = p.id
       idB = NO_ID
       anchorY = p.y
+      anchorX = p.x
       anchorPosition = position
+      horizontal = false
     }
 
     if (!dragEnabled || viewportHeight <= 0f) return
 
     val dy = p.y - anchorY
+    val dx = p.x - anchorX
+
     if (!dragActive) {
+      if (horizontal) return
+
+      // Direction arbitration, measured from the HORIZONTAL: the drag owns the steep cone (70°..110°,
+      // i.e. within 20° of vertical) and the horizontal recognizer owns everything flatter (0°..69°).
+      // The horizontal recognizer claims a swipe when `abs(dy) < abs(dx) * 2.75` (2.75 ≈ tan(70°),
+      // see GestureHandler), so using the same boundary here keeps the two gestures mutually
+      // exclusive with no gap: a swipe stays a swipe even if it wobbles, and only a genuinely steep
+      // drag moves the subtitle.
+      if (abs(dy) < abs(dx) * HORIZONTAL_CLAIM_RATIO) {
+        if (abs(dx) >= dragSlop) horizontal = true
+        return
+      }
       if (abs(dy) < dragSlop) return
+
       dragActive = true
       moved = true
       // Start from where the finger is now, so crossing the slop never shifts the subtitle.
       anchorY = p.y
+      anchorX = p.x
       anchorPosition = position
       listener.onDragStarted()
       return
@@ -239,6 +268,14 @@ internal class SubtitleGestureEngine(
     const val POSITION_MAX = 150f
     const val SCALE_MIN = 0.3f
     const val SCALE_MAX = 5f
+
+    /**
+     * Must match the horizontal-swipe recognizer's own test (`abs(dy) < abs(dx) * 2.75`) so a touch
+     * is never claimed as both a subtitle drag and a horizontal swipe. 2.75 ≈ tan(70°), measured from
+     * the horizontal: the swipe owns the flatter 0°..69° and the drag owns the steeper 70°..110°.
+     * See [handleOneFinger].
+     */
+    private const val HORIZONTAL_CLAIM_RATIO = 2.75f
     private const val MIN_BASE_DISTANCE = 8f
     private const val NO_ID = Long.MIN_VALUE
   }

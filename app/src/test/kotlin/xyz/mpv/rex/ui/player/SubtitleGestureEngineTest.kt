@@ -68,6 +68,75 @@ class SubtitleGestureEngineTest {
     assertFalse(rec.endScaled)
   }
 
+  // 1b -----------------------------------------------------------------------------------------
+
+  @Test
+  fun aStronglyHorizontalSwipeNeverStartsADragEvenThoughItWobblesVertically() {
+    val rec = Recorder()
+    val e = engine(rec, position = 90f)
+    e.begin(listOf(p(1, 500f, 800f)))
+    // Imprecise swipe-to-subtitle-seek: mostly horizontal, with vertical drift well past the slop.
+    e.update(listOf(p(1, 535f, 806f))) // dx=35, dy=6 -> flatter than 70°, latches as a swipe
+    e.update(listOf(p(1, 570f, 816f)))
+    e.update(listOf(p(1, 600f, 826f))) // dx=100, dy=26 -> still a swipe
+
+    assertEquals(0, rec.dragStarted)
+    assertTrue("a horizontal swipe must not move the subtitle", rec.positions.isEmpty())
+  }
+
+  @Test
+  fun onceASwipeIsHorizontalALaterVerticalMoveStillDoesNotDrag() {
+    val rec = Recorder()
+    val e = engine(rec, position = 90f)
+    e.begin(listOf(p(1, 500f, 800f)))
+    e.update(listOf(p(1, 560f, 800f))) // clearly horizontal: latches
+    e.update(listOf(p(1, 565f, 900f))) // now drags far down, but the finger is already a swipe
+
+    assertEquals(0, rec.dragStarted)
+    assertTrue(rec.positions.isEmpty())
+  }
+
+  @Test
+  fun aMoveAtAbout45DegreesIsASwipeNotADrag() {
+    val rec = Recorder()
+    val e = engine(rec, position = 90f)
+    e.begin(listOf(p(1, 500f, 800f)))
+    // dx=40, dy=40 -> 45° from horizontal: far too flat to drag, so it stays a swipe.
+    e.update(listOf(p(1, 540f, 840f)))
+    assertEquals(0, rec.dragStarted)
+    assertTrue(rec.positions.isEmpty())
+  }
+
+  @Test
+  fun aMoveAtAbout69DegreesFromHorizontalIsStillASwipe() {
+    val rec = Recorder()
+    val e = engine(rec, position = 90f)
+    e.begin(listOf(p(1, 500f, 800f)))
+    // dx=20, dy=52 -> atan(52/20) ≈ 69°, flatter than the 70° boundary -> swipe, no drag.
+    e.update(listOf(p(1, 520f, 852f)))
+    assertEquals(0, rec.dragStarted)
+    assertTrue(rec.positions.isEmpty())
+  }
+
+  @Test
+  fun aMoveAtAbout71DegreesFromHorizontalDrags() {
+    val rec = Recorder()
+    val e = engine(rec, position = 90f)
+    e.begin(listOf(p(1, 500f, 800f)))
+    // dx=20, dy=58 -> atan(58/20) ≈ 71°, steeper than 70° -> drag starts.
+    e.update(listOf(p(1, 520f, 858f)))
+    assertEquals(1, rec.dragStarted)
+  }
+
+  @Test
+  fun aStraightVerticalMoveDrags() {
+    val rec = Recorder()
+    val e = engine(rec, position = 90f)
+    e.begin(listOf(p(1, 500f, 800f)))
+    e.update(listOf(p(1, 500f, 860f))) // pure vertical (90°) -> drag
+    assertEquals(1, rec.dragStarted)
+  }
+
   // 2 ------------------------------------------------------------------------------------------
 
   @Test

@@ -14,12 +14,15 @@ import kotlin.math.roundToInt
 /*
  * Subtitle touch handling (drag to reposition, pinch to resize, "grabbed" marker).
  *
- * Design in one paragraph: a touch that STARTS on a subtitle belongs to the subtitle from the
- * first finger down until the last finger up. A single pointer recognizer ([subtitleTouchOwner])
- * decides that at touch-down and publishes it through [SubtitleTouchGate]; every other recognizer in
- * GestureHandler checks the gate right after its own touch-down and steps aside for the whole
- * touch. The finger logic itself lives in [SubtitleGestureEngine] (pure Kotlin, unit tested);
- * this file only connects it to Compose pointer events and to mpv.
+ * Design in one paragraph: a touch that STARTS on a subtitle is a "candidate" for a subtitle
+ * gesture. A single pointer recognizer ([subtitleTouchOwner]) detects that at touch-down and
+ * publishes it through [SubtitleTouchGate]. Recognizers that genuinely conflict (pinch-to-zoom,
+ * pan, brightness/volume drag) step aside as soon as the touch is a candidate, because the first
+ * finger is already on the subtitle. Recognizers that must NOT lose a touch merely because it began
+ * on the subtitle — the tap that toggles the UI and the horizontal swipe that does subtitle seek —
+ * only step aside once the finger actually becomes a subtitle drag/pinch ([SubtitleTouchGate.isActive],
+ * the engine crossed its slop). The finger logic itself lives in [SubtitleGestureEngine] (pure
+ * Kotlin, unit tested); this file only connects it to Compose pointer events and to mpv.
  */
 
 private const val SUBTITLE_HIGHLIGHT_COLOR = "#66808080"
@@ -37,11 +40,13 @@ private const val STYLE_PREFIX = "sub"
 /**
  * Primary native ASS/SSA tracks ignore the shared `sub-*` style unless `sub-ass-override=force`
  * (REX runs the primary at `scale` when "override ASS" is off; the secondary is always forced).
- * When true, the primary ASS override is forced ONLY while the primary ASS is grabbed, then restored.
- * `force` can change how that ASS looks while grabbed (font, size, outline, position). If that is
- * visible on a real device, set this to false: the primary ASS then simply gets no tint.
+ *
+ * Forcing the override while grabbed was tried and reverted: it makes mpv re-style the ASS with the
+ * global `sub-*` font/size, so the subtitle visibly changed font for the duration of the touch.
+ * The trade-off is that a primary ASS then gets no tint at all (it keeps its own styling), which is
+ * the less surprising behaviour. Set to true to bring the tint back at the cost of that font change.
  */
-private const val FORCE_PRIMARY_ASS_WHILE_GRABBED = true
+private const val FORCE_PRIMARY_ASS_WHILE_GRABBED = false
 
 /**
  * The touch slop is only a guard against accidental drags. The subtitle has already been grabbed by
@@ -51,15 +56,42 @@ private const val FORCE_PRIMARY_ASS_WHILE_GRABBED = true
 private const val SUBTITLE_DRAG_SLOP_FACTOR = 0.5f
 
 /**
- * Tells the other gesture recognizers that the current touch belongs to a subtitle.
+ * Tells the other gesture recognizers what the current touch is doing.
  *
  * It is deliberately NOT Compose state: it is written and read inside pointer-event handling, where
  * a recomposition would arrive too late and would needlessly restart recognizers.
+ *
+ * Two levels are published, because "started on a subtitle" is not the same as "belongs to the
+ * subtitle":
+ *  - [isCandidate] is set at touch-down, when the first finger landed on a subtitle. A tap or a
+ *    horizontal swipe may still start there and must keep working (tap toggles the UI, horizontal
+ *    swipe does subtitle seek), so most recognizers only use this to know a claim MIGHT come.
+ *  - [isActive] means the finger actually became a subtitle drag/pinch (the engine crossed its
+ *    slop). Only then does the touch truly belong to the subtitle and every other recognizer must
+ *    step aside, otherwise they would fight the drag.
  */
 internal class SubtitleTouchGate {
   @Volatile
+  var isCandidate: Boolean = false
+    internal set
+
+  @Volatile
   var isActive: Boolean = false
     internal set
+
+  fun claimCandidate() {
+    isCandidate = true
+    isActive = false
+  }
+
+  fun claimActive() {
+    isActive = true
+  }
+
+  fun clear() {
+    isCandidate = false
+    isActive = false
+  }
 }
 
 /** What the subtitle gestures need from the player UI. */
@@ -417,6 +449,12 @@ internal class MpvSubtitleGestureListener(
   private val prefs: SubtitlesPreferences,
   private val highlight: SubtitleGrabHighlight,
   private val ui: SubtitleTouchUi,
+  /**
+   * Called the first time the finger becomes a real subtitle drag/pinch. The recognizer uses it to
+   * upgrade the gate from "candidate" to "active" so the other recognizers step aside only now,
+   * leaving taps and horizontal swipes that merely started on the subtitle untouched.
+   */
+  private val onGestureOwnsTouch: () -> Unit = {},
 ) : SubtitleGestureListener {
   private val isSecondary = prefix == "secondary-sub"
   private var appliedPosition = Int.MIN_VALUE
@@ -429,6 +467,7 @@ internal class MpvSubtitleGestureListener(
   }
 
   override fun onDragStarted() {
+    onGestureOwnsTouch()
     ui.hapticDragStart()
   }
 
@@ -443,6 +482,7 @@ internal class MpvSubtitleGestureListener(
   }
 
   override fun onPinchStarted() {
+    onGestureOwnsTouch()
     ui.hapticPinchStart()
   }
 
@@ -532,7 +572,7 @@ internal fun Modifier.subtitleTouchOwner(
       ?: if (isSecondary) prefs.secondarySubScale.get() else prefs.subScale.get()
 
     val engine = SubtitleGestureEngine(
-      listener = MpvSubtitleGestureListener(prefix, prefs, highlight, ui),
+      listener = MpvSubtitleGestureListener(prefix, prefs, highlight, ui, onGestureOwnsTouch = { gate.claimActive() }),
       dragEnabled = dragEnabled,
       pinchEnabled = canPinch,
       viewportHeight = height,
@@ -545,7 +585,7 @@ internal fun Modifier.subtitleTouchOwner(
       positionMaxForScale = target.maxPositionForScale,
     )
 
-    gate.isActive = true
+    gate.claimCandidate()
     try {
       down.consume()
       engine.begin(listOf(TouchPoint(down.id.value, down.position.x, down.position.y)))
@@ -560,7 +600,7 @@ internal fun Modifier.subtitleTouchOwner(
       // Runs on a normal end AND if this coroutine is cancelled mid-touch, so neither the marker
       // nor the gate can ever get stuck.
       engine.finish()
-      gate.isActive = false
+      gate.clear()
     }
   }
 }
