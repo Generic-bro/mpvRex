@@ -2066,6 +2066,7 @@ fun PlayerControls(
     val sheetShown by viewModel.sheetShown.collectAsState()
     val subtitles by viewModel.subtitleTracks.collectAsState(persistentListOf())
     val audioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
+    val alternateAudio by viewModel.availableAlternateAudio.collectAsState(persistentListOf())
     val sleepTimerTimeRemaining by viewModel.remainingTime.collectAsState()
     val speedPresets by playerPreferences.speedPresets.collectAsState()
     val speedCyclePresets by playerPreferences.speedCyclePresets.collectAsState()
@@ -2083,6 +2084,8 @@ fun PlayerControls(
       onSelectAudio = {
         viewModel.selectAudioTrack(it.id, it.title, it.lang)
       },
+      alternateAudio = alternateAudio.toImmutableList(),
+      onSelectAlternateAudio = viewModel::selectAlternateAudio,
       chapter = chapters.getOrNull(currentChapter ?: 0),
       chapters = chapters.toImmutableList(),
       currentChapterIndex = currentChapter ?: 0,

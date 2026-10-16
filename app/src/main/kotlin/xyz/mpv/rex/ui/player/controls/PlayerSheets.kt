@@ -32,6 +32,7 @@ import xyz.mpv.rex.ui.player.controls.components.sheets.VideoQualitySheet
 import xyz.mpv.rex.utils.media.MediaInfoParser
 import dev.vivvvek.seeker.Segment
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import org.koin.compose.koinInject
 import androidx.compose.runtime.collectAsState as composeCollectAsState
@@ -53,6 +54,8 @@ fun PlayerSheets(
   audioTracks: ImmutableList<TrackNode>,
   onAddAudio: (Uri) -> Unit,
   onSelectAudio: (TrackNode) -> Unit,
+  alternateAudio: ImmutableList<xyz.mpv.rex.domain.ytdl.model.AudioTrack> = persistentListOf(),
+  onSelectAlternateAudio: (xyz.mpv.rex.domain.ytdl.model.AudioTrack) -> Unit = {},
   // chapters sheet
   chapter: Segment?,
   chapters: ImmutableList<Segment>,
@@ -277,6 +280,8 @@ fun PlayerSheets(
         onAddAudioTrack = { showFilePicker = true },
         onOpenDelayPanel = { onOpenPanel(Panels.AudioDelay) },
         onDismissRequest,
+        alternateTracks = alternateAudio,
+        onSelectAlternate = onSelectAlternateAudio,
       )
     }
 

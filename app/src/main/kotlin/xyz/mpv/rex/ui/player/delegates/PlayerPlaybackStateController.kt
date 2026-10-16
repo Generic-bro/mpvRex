@@ -206,8 +206,17 @@ class PlayerPlaybackStateController(
     }
 
     if (state.aid > 0) {
-      activity.player.aid = state.aid
-      Log.d(TAG, "Restored audio track: ${state.aid} (user selection)")
+      // The saved `aid` is an absolute mpv track id. Alternate audio streams are
+      // injected as external tracks *after* load and get their own ids, so the
+      // numeric value captured earlier may now point at a different (external)
+      // stream. Only re-apply it when it still resolves to a non-external audio
+      // track; otherwise mpv's own default selection wins.
+      if (isRestorableAudioTrackId(state.aid)) {
+        activity.player.aid = state.aid
+        Log.d(TAG, "Restored audio track: ${state.aid} (user selection)")
+      } else {
+        Log.d(TAG, "Skipped restoring stale audio track id ${state.aid} (no longer a primary audio track)")
+      }
     }
 
     MPVLib.setPropertyDouble("sub-delay", subDelay)
@@ -302,6 +311,24 @@ class PlayerPlaybackStateController(
       val defaultSubSpeed = activity.subtitlesPreferences.defaultSubSpeed.get().toDouble()
       MPVLib.setPropertyDouble("sub-speed", defaultSubSpeed)
     }
+  }
+
+  /**
+   * Returns true when [trackId] still resolves to a primary (non-external) audio track
+   * in mpv's current track list. Saved audio ids are only meaningful while the track
+   * layout is unchanged; alternate web-audio streams are injected as external tracks
+   * after load and would otherwise collide with a stale numeric id.
+   */
+  private fun isRestorableAudioTrackId(trackId: Int): Boolean {
+    val count = runCatching { MPVLib.getPropertyInt("track-list/count") }.getOrNull() ?: return false
+    for (i in 0 until count) {
+      val id = runCatching { MPVLib.getPropertyInt("track-list/$i/id") }.getOrNull() ?: continue
+      if (id != trackId) continue
+      val type = runCatching { MPVLib.getPropertyString("track-list/$i/type") }.getOrNull()
+      val external = runCatching { MPVLib.getPropertyBoolean("track-list/$i/external") }.getOrNull() ?: false
+      return type == "audio" && !external
+    }
+    return false
   }
 
   /**

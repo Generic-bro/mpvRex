@@ -314,6 +314,26 @@ class PlayerViewModel(
         .toList()
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+  /**
+   * Alternate audio languages advertised by the yt-dlp add-on that are NOT yet
+   * attached to mpv. They are attached on demand (see [selectAlternateAudio]) so
+   * no alternate stream is buffered until the user actually wants it.
+   */
+  private val _availableAlternateAudio = MutableStateFlow<List<xyz.mpv.rex.domain.ytdl.model.AudioTrack>>(emptyList())
+  val availableAlternateAudio: StateFlow<List<xyz.mpv.rex.domain.ytdl.model.AudioTrack>> =
+    _availableAlternateAudio.asStateFlow()
+
+  /** Publishes the alternate audio list resolved for the current web stream. */
+  fun setAvailableAlternateAudio(tracks: List<xyz.mpv.rex.domain.ytdl.model.AudioTrack>) {
+    _availableAlternateAudio.value = tracks
+  }
+
+  /** Attaches and selects an alternate audio language chosen by the user. */
+  fun selectAlternateAudio(track: xyz.mpv.rex.domain.ytdl.model.AudioTrack) {
+    _availableAlternateAudio.value = _availableAlternateAudio.value.filterNot { it.url == track.url }
+    _trackManager.addRemoteAudio(track.url, track.label, select = true, lang = track.lang)
+  }
+
   val chapters: StateFlow<List<dev.vivvvek.seeker.Segment>> =
     observeChapters(json)
       .stateIn(viewModelScope, SharingStarted.Lazily, persistentListOf())
@@ -731,6 +751,7 @@ class PlayerViewModel(
 
   fun resetExternalAudioTracks() {
     _trackManager.resetExternalAudioTracks()
+    _availableAlternateAudio.value = emptyList()
   }
 
   fun prepareForFileLoad(initialDurationSec: Float? = null, isNetwork: Boolean = false) {

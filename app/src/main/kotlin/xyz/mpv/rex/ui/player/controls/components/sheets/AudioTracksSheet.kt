@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreTime
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -35,6 +36,7 @@ import xyz.mpv.rex.ui.player.TrackNode
 import xyz.mpv.rex.ui.theme.spacing
 import `is`.xyz.mpv.MPVLib
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import org.koin.compose.koinInject
 
 @Composable
@@ -45,6 +47,8 @@ fun AudioTracksSheet(
   onOpenDelayPanel: () -> Unit,
   onDismissRequest: () -> Unit,
   modifier: Modifier = Modifier,
+  alternateTracks: ImmutableList<xyz.mpv.rex.domain.ytdl.model.AudioTrack> = persistentListOf(),
+  onSelectAlternate: (xyz.mpv.rex.domain.ytdl.model.AudioTrack) -> Unit = {},
 ) {
   val audioPreferences = koinInject<AudioPreferences>()
   val audioChannels by audioPreferences.audioChannels.collectAsState()
@@ -71,7 +75,23 @@ fun AudioTracksSheet(
       )
     },
     footer = {
-      androidx.compose.material3.Surface(
+      Column {
+        if (alternateTracks.isNotEmpty()) {
+          Text(
+            text = "Other audio languages",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+          )
+          for (track in alternateTracks) {
+            AlternateAudioRow(
+              track = track,
+              onClick = { onSelectAlternate(track) },
+            )
+          }
+        }
+        androidx.compose.material3.Surface(
         modifier = Modifier
           .fillMaxWidth()
           .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -112,6 +132,7 @@ fun AudioTracksSheet(
             }
           }
         }
+      }
       }
     },
     modifier = modifier,
@@ -252,6 +273,48 @@ fun AudioTrackRow(
         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
         color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
       )
+    }
+  }
+}
+
+/**
+ * A selectable alternate audio language that has NOT been attached to mpv yet.
+ * Picking it attaches the stream on demand.
+ */
+@Composable
+fun AlternateAudioRow(
+  track: xyz.mpv.rex.domain.ytdl.model.AudioTrack,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  androidx.compose.material3.Surface(
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 16.dp, vertical = 2.dp),
+    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    onClick = onClick,
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 14.dp, vertical = 10.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+      Icon(
+        Icons.Default.Add,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+      )
+      Column(modifier = Modifier.weight(1f)) {
+        Text(
+          text = track.label ?: track.lang ?: "Audio",
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = FontWeight.Medium,
+          color = MaterialTheme.colorScheme.onSurface,
+        )
+      }
     }
   }
 }

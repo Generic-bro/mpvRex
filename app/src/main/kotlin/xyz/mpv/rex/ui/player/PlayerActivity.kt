@@ -346,10 +346,11 @@ class PlayerActivity :
         val extraAudio = pendingRemoteAudio
         pendingRemoteAudio = null
         if (!extraAudio.isNullOrEmpty()) {
-          android.util.Log.i("YtdlIpc", "onFileLoaded drain: extraAudio=${extraAudio.size}")
-          extraAudio.forEach { track ->
-            viewModel.addRemoteAudio(track.url, track.label, select = false, lang = track.lang)
-          }
+          android.util.Log.i("YtdlIpc", "onFileLoaded: offering ${extraAudio.size} alternate audio track(s) (lazy)")
+          // Do NOT attach alternates here: attaching them eagerly opens a separate
+          // HTTP stream per language, which is what caused the bandwidth spike and
+          // the wrong-track selection. They are attached on demand instead.
+          viewModel.setAvailableAlternateAudio(extraAudio)
         }
       }
 
