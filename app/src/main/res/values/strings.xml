@@ -827,6 +827,8 @@
     <string name="network_connection_browse">Browse</string>
     <string name="network_connection_disconnect">Disconnect</string>
     <string name="network_connection_connect">Connect</string>
+    <string name="network_status_connected">Connected</string>
+    <string name="network_status_offline">Offline</string>
 
     <!-- Playlist Screen Empty and Search States -->
     <string name="no_playlists_found">No playlists found</string>
@@ -1190,6 +1192,7 @@
 
     <!-- Network Streaming Screen -->
     <string name="network_recent_links">Recent Links</string>
+    <string name="network_stream_link_hint">Type or paste a URL</string>
     <string name="network_local_network">Local Network</string>
     <string name="network_share_unreachable">Can\'t reach the network share.</string>
     <string name="network_empty_title">No network connections</string>

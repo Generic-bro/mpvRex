@@ -1,47 +1,42 @@
 package xyz.mpv.rex.ui.browser.networkstreaming
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.SignalWifiConnectedNoInternet4
 import androidx.compose.material.icons.rounded.SignalWifiStatusbarConnectedNoInternet4
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import xyz.mpv.rex.R
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,11 +56,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.GroupedListColumn
+import xyz.mpv.rex.presentation.components.GroupedListItem
+import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.cards.NetworkConnectionCard
 import xyz.mpv.rex.ui.browser.dialogs.AddConnectionSheet
 import xyz.mpv.rex.ui.browser.dialogs.EditConnectionSheet
-import xyz.mpv.rex.ui.browser.states.EmptyState
+import xyz.mpv.rex.ui.preferences.GroupedPreferenceCard
+import xyz.mpv.rex.ui.preferences.PreferenceSectionHeader
 import xyz.mpv.rex.ui.preferences.PreferencesScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.media.MediaUtils
@@ -73,6 +72,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 import xyz.mpv.rex.preferences.FolderViewMode
+import android.widget.Toast
 
 @Serializable
 object NetworkStreamingScreen : Screen {
@@ -180,14 +180,14 @@ object NetworkStreamingScreen : Screen {
           .fillMaxSize()
           .padding(padding),
         contentPadding = PaddingValues(
-          start = 16.dp, 
-          end = 16.dp, 
-          top = 16.dp, 
+          start = 0.dp,
+          end = 0.dp,
+          top = 4.dp,
           bottom = navigationBarHeight
         ),
       ) {
           // Section 1: Stream Link
-          item {
+          item(key = "stream_link") {
             StreamLinkSection(
               onPlayLink = { url ->
                 val currentList = playedLinks.toMutableList()
@@ -203,75 +203,97 @@ object NetworkStreamingScreen : Screen {
 
           // Section 1b: Played Links History Section
           if (playedLinks.isNotEmpty()) {
-            item {
-              Spacer(modifier = Modifier.height(24.dp))
-              Text(
-                text = stringResource(R.string.network_recent_links),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(vertical = 4.dp),
+            item(key = "recent_links_header") {
+              PreferenceSectionHeader(
+                title = stringResource(R.string.network_recent_links),
+                modifier = Modifier.padding(top = 16.dp),
               )
             }
 
-            items(playedLinks) { link ->
-              Card(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(vertical = 4.dp)
-                  .clickable {
-                    // Play link and move to top
-                    val currentList = playedLinks.toMutableList()
-                    currentList.remove(link)
-                    currentList.add(0, link)
-                    browserPreferences.playedNetworkLinks.set(currentList.joinToString("\n"))
-                    MediaUtils.playFile(link, context, "network_stream")
-                  },
-                colors = CardDefaults.cardColors(
-                  containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                ),
+            item(key = "recent_links_list") {
+              GroupedListColumn(
+                modifier = Modifier.padding(horizontal = 16.dp),
               ) {
-                Row(
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                  Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                  ) {
-                    Icon(
-                      imageVector = Icons.Filled.Link,
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                      modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                      text = link,
-                      style = MaterialTheme.typography.bodyMedium,
-                      color = MaterialTheme.colorScheme.onSurface,
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis,
-                    )
-                  }
+                val clipboardManager =
+                  context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
 
-                  IconButton(
-                    onClick = {
-                      val currentList = playedLinks.toMutableList()
-                      currentList.remove(link)
-                      browserPreferences.playedNetworkLinks.set(currentList.joinToString("\n"))
+                playedLinks.forEachIndexed { index, link ->
+                  GroupedListItem(
+                    position = when {
+                      playedLinks.size == 1 -> GroupPosition.ONLY
+                      index == 0 -> GroupPosition.FIRST
+                      index == playedLinks.size - 1 -> GroupPosition.LAST
+                      else -> GroupPosition.MIDDLE
                     },
-                    modifier = Modifier.size(24.dp)
                   ) {
-                    Icon(
-                      imageVector = Icons.Filled.Close,
-                      contentDescription = stringResource(R.string.network_remove_link_action),
-                      tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                      modifier = Modifier.size(16.dp)
-                    )
+                    @OptIn(ExperimentalFoundationApi::class)
+                    Row(
+                      modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                          onClick = {
+                            // Play link and move to top
+                            val currentList = playedLinks.toMutableList()
+                            currentList.remove(link)
+                            currentList.add(0, link)
+                            browserPreferences.playedNetworkLinks.set(currentList.joinToString("\n"))
+                            MediaUtils.playFile(link, context, "network_stream")
+                          },
+                          onLongClick = {
+                            // Copy link to clipboard
+                            clipboardManager?.setPrimaryClip(
+                              android.content.ClipData.newPlainText("link", link)
+                            )
+                            Toast.makeText(
+                              context,
+                              context.getString(R.string.copied_to_clipboard),
+                              Toast.LENGTH_SHORT,
+                            ).show()
+                          },
+                        )
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                      verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                      Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        modifier = Modifier.size(36.dp),
+                      ) {
+                        Box(contentAlignment = Alignment.Center) {
+                          Icon(
+                            imageVector = Icons.Filled.Link,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                          )
+                        }
+                      }
+                      Text(
+                        text = link,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                          .weight(1f)
+                          .padding(horizontal = 12.dp),
+                      )
+                      IconButton(
+                        onClick = {
+                          val currentList = playedLinks.toMutableList()
+                          currentList.remove(link)
+                          browserPreferences.playedNetworkLinks.set(currentList.joinToString("\n"))
+                        },
+                        modifier = Modifier.size(28.dp),
+                      ) {
+                        Icon(
+                          imageVector = Icons.Filled.Close,
+                          contentDescription = stringResource(R.string.network_remove_link_action),
+                          tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                          modifier = Modifier.size(16.dp),
+                        )
+                      }
+                    }
                   }
                 }
               }
@@ -279,57 +301,56 @@ object NetworkStreamingScreen : Screen {
           }
 
           // Section 2: Local Network header
-          item {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-              text = stringResource(R.string.network_local_network),
-              style = MaterialTheme.typography.titleLarge,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.padding(vertical = 8.dp),
+          item(key = "local_network_header") {
+            PreferenceSectionHeader(
+              title = stringResource(R.string.network_local_network),
+              modifier = Modifier.padding(top = 16.dp),
             )
           }
 
           // Show empty state or connection list
           if (connections.isEmpty()) {
-            item {
-              Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                  containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-              ) {
-                Column(
+            item(key = "connections_empty") {
+              GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                Row(
                   modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                  horizontalAlignment = Alignment.CenterHorizontally,
+                    .padding(16.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                  Icon(
-                    imageVector = Icons.Rounded.SignalWifiStatusbarConnectedNoInternet4,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                  )
-                  Spacer(modifier = Modifier.height(16.dp))
-                  Text(
-                    text = stringResource(R.string.network_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface, // a
-                  )
-                  Spacer(modifier = Modifier.height(8.dp))
-                  Text(
-                    text = stringResource(R.string.network_empty_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                  )
+                  Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.size(42.dp),
+                  ) {
+                    Box(contentAlignment = Alignment.Center) {
+                      Icon(
+                        imageVector = Icons.Rounded.SignalWifiStatusbarConnectedNoInternet4,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(24.dp),
+                      )
+                    }
+                  }
+                  Column {
+                    Text(
+                      text = stringResource(R.string.network_empty_title),
+                      style = MaterialTheme.typography.bodyMedium,
+                      fontWeight = FontWeight.SemiBold,
+                      color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                      text = stringResource(R.string.network_empty_description),
+                      style = MaterialTheme.typography.bodySmall,
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  }
                 }
               }
             }
           } else {
-            items(connections, key = { it.id }) { connection ->
+            itemsIndexed(connections, key = { _, item -> item.id }) { index, connection ->
               val status = connectionStatuses[connection.id]
               NetworkConnectionCard(
                 connection = connection,
@@ -357,7 +378,13 @@ object NetworkStreamingScreen : Screen {
                 isConnected = status?.isConnected ?: false,
                 isConnecting = status?.isConnecting ?: false,
                 error = status?.error,
-                modifier = Modifier.padding(bottom = 16.dp),
+                position = when {
+                  connections.size == 1 -> GroupPosition.ONLY
+                  index == 0 -> GroupPosition.FIRST
+                  index == connections.size - 1 -> GroupPosition.LAST
+                  else -> GroupPosition.MIDDLE
+                },
+                modifier = Modifier.padding(bottom = 3.dp),
               )
             }
           }
@@ -396,103 +423,79 @@ private fun StreamLinkSection(
   val context = LocalContext.current
   var linkUrl by rememberSaveable { mutableStateOf("") }
 
+  fun pasteFromClipboard(): String? {
+    val clipboardManager =
+      context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+    val clipData = clipboardManager?.primaryClip
+    if (clipData != null && clipData.itemCount > 0) {
+      val text = clipData.getItemAt(0).text?.toString() ?: ""
+      if (text.isNotBlank()) {
+        return text
+      }
+    }
+    return null
+  }
+
   Column(
     modifier = Modifier.fillMaxWidth(),
   ) {
-    Text(
-      text = stringResource(R.string.stream_link),
-      style = MaterialTheme.typography.titleLarge,
-      fontWeight = FontWeight.Bold,
-      color = MaterialTheme.colorScheme.primary,
-      modifier = Modifier.padding(vertical = 8.dp),
+    PreferenceSectionHeader(
+      title = stringResource(R.string.stream_link),
+      modifier = Modifier.padding(top = 4.dp),
     )
-    Card(
-      modifier = Modifier.fillMaxWidth(),
-      colors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-      ),
-    ) {
-      Column(
-        modifier = Modifier.padding(16.dp),
-      ) {
-        OutlinedTextField(
-          value = linkUrl,
-          onValueChange = { linkUrl = it },
-          label = { Text(stringResource(R.string.video_url)) },
-          placeholder = {
-            Text(
-              text = stringResource(R.string.video_url_placeholder),
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          },
-          leadingIcon = {
-            Icon(
-              imageVector = Icons.Filled.Link,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          },
-          modifier = Modifier.fillMaxWidth(),
-          singleLine = true,
-        )
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-          horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-        ) {
-          FilledTonalButton(
-            onClick = {
-              val clipboardManager =
-                context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-              val clipData = clipboardManager?.primaryClip
-              if (clipData != null && clipData.itemCount > 0) {
-                val text = clipData.getItemAt(0).text?.toString() ?: ""
-                if (text.isNotBlank()) {
-                  linkUrl = text
-                }
-              }
-            },
-            colors = ButtonDefaults.filledTonalButtonColors(
-              containerColor = MaterialTheme.colorScheme.secondaryContainer,
-              contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            ),
-          ) {
-            Icon(
-              imageVector = Icons.Filled.ContentPaste,
-              contentDescription = null,
-              modifier = Modifier.padding(end = 8.dp),
-            )
-            Text(
-              text = stringResource(R.string.paste),
-              fontWeight = FontWeight.Bold,
-            )
-          }
 
-          FilledTonalButton(
-            onClick = {
-              if (linkUrl.isNotBlank()) {
-                onPlayLink(linkUrl)
-                linkUrl = ""
-              }
-            },
-            enabled = linkUrl.isNotBlank(),
-            colors = ButtonDefaults.filledTonalButtonColors(
-              containerColor = MaterialTheme.colorScheme.primaryContainer,
-              contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ),
-          ) {
-            Icon(
-              imageVector = Icons.Filled.PlayArrow,
-              contentDescription = null,
-              modifier = Modifier.padding(end = 8.dp),
-            )
-            Text(
-              text = stringResource(R.string.play),
-              fontWeight = FontWeight.Bold,
-            )
+    // Single M3E row: text input + one combined Paste/Play action
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      OutlinedTextField(
+        value = linkUrl,
+        onValueChange = { linkUrl = it },
+        placeholder = {
+          Text(
+            text = stringResource(R.string.network_stream_link_hint),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        },
+        leadingIcon = {
+          Icon(
+            imageVector = Icons.Filled.Link,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        },
+        modifier = Modifier.weight(1f),
+        singleLine = true,
+        shape = MaterialTheme.shapes.large,
+      )
+
+      // One button, two jobs: paste when empty, play when filled
+      FilledTonalButton(
+        onClick = {
+          if (linkUrl.isBlank()) {
+            pasteFromClipboard()?.let { linkUrl = it }
+          } else {
+            onPlayLink(linkUrl)
+            linkUrl = ""
           }
-        }
+        },
+        modifier = Modifier.height(56.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = ButtonDefaults.filledTonalButtonColors(
+          containerColor = MaterialTheme.colorScheme.primaryContainer,
+          contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+      ) {
+        Icon(
+          imageVector = if (linkUrl.isBlank()) Icons.Filled.ContentPaste else Icons.Filled.PlayArrow,
+          contentDescription = stringResource(
+            if (linkUrl.isBlank()) R.string.paste else R.string.play
+          ),
+        )
       }
     }
   }
