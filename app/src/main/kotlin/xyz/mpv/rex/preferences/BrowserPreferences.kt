@@ -110,6 +110,10 @@ class BrowserPreferences(
 
   val folderViewMode = preferenceStore.getEnum("folder_view_mode", FolderViewMode.AlbumView)
 
+  // Whether the "Filters" section in the sort dialog is expanded. Persisted so it
+  // carries over between Folder/Tree/Library views (each has its own dialog slot).
+  val sortDialogFiltersExpanded = preferenceStore.getBoolean("sort_dialog_filters_expanded", true)
+
   private val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
   val folderGridColumnsPortrait = preferenceStore.getInt("folder_grid_columns_portrait", if (isTablet) 4 else 3)
   val folderGridColumnsLandscape = preferenceStore.getInt("folder_grid_columns_landscape", 5)

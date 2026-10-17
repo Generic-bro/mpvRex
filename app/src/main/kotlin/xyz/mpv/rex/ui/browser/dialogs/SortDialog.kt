@@ -114,6 +114,15 @@ fun SortDialog(
   enableLayoutModeOptions: Boolean = true,
   contentToggles: List<ContentToggle> = emptyList(),
 ) {
+  // Backed by a persisted preference so the expand/collapse state is shared by all
+  // dialog instances (Folder / Tree / Library views each compose their own dialog)
+  // and survives view-mode switches and app restarts.
+  val browserPreferences = koinInject<BrowserPreferences>()
+  val filtersExpanded by browserPreferences.sortDialogFiltersExpanded.collectAsState()
+  val onFiltersExpandedChange: (Boolean) -> Unit = {
+    browserPreferences.sortDialogFiltersExpanded.set(it)
+  }
+
   if (!isOpen) return
 
   val configuration = LocalConfiguration.current
@@ -212,6 +221,8 @@ fun SortDialog(
           if (contentToggles.isNotEmpty()) {
             ContentTogglesSection(
               toggles = contentToggles,
+              expanded = filtersExpanded,
+              onExpandedChange = onFiltersExpandedChange,
               modifier = Modifier.fillMaxWidth(),
             )
           }
@@ -510,10 +521,10 @@ private fun ViewModeSelectorComponent(
 @Composable
 private fun ContentTogglesSection(
   toggles: List<ContentToggle>,
+  expanded: Boolean,
+  onExpandedChange: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  var expanded by remember { mutableStateOf(false) }
-
   Column(
     modifier = modifier
       .fillMaxWidth()
@@ -527,7 +538,7 @@ private fun ContentTogglesSection(
         .clickable(
           interactionSource = remember { MutableInteractionSource() },
           indication = ripple(bounded = true),
-          onClick = { expanded = !expanded }
+          onClick = { onExpandedChange(!expanded) }
         )
         .padding(12.dp),
       horizontalArrangement = Arrangement.SpaceBetween,
