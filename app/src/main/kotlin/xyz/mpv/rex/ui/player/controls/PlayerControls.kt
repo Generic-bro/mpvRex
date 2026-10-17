@@ -1469,7 +1469,10 @@ fun PlayerControls(
 
                 val durationFloat = effectiveDuration
                 val threshold = (durationFloat * 0.08f).coerceIn(15f, 400f)
-                val close = enableReleaseToCancel && changeCount > 1 && abs(newValue - dragStartValue) < threshold
+                // Suppress release-to-cancel when the drag started near either edge,
+                // so seeking to the very first/last position never reverts.
+                val dragStartedNearEdge = dragStartValue < threshold || dragStartValue > durationFloat - threshold
+                val close = enableReleaseToCancel && changeCount > 1 && !dragStartedNearEdge && abs(newValue - dragStartValue) < threshold
 
                 if (close) {
                   isCloseToStart = true
