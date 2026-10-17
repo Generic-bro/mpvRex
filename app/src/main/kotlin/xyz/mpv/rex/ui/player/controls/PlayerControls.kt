@@ -227,6 +227,9 @@ fun PlayerControls(
   val playlistItems by viewModel.playlistManager.playlist.collectAsState()
   val playlistIndex by viewModel.playlistManager.currentIndex.collectAsState()
   var isSeeking by remember { mutableStateOf(false) }
+  // Fixed zone (seconds) at the very start of the file (00:00:00) where release-to-cancel
+  // is suppressed so seeking to the beginning always starts playback from the start.
+  val EDGE_EPSILON_SECONDS = 2f
   var dragStartValue by remember { mutableStateOf(-1f) }
   var isCloseToStart by remember { mutableStateOf(false) }
   var changeCount by remember { mutableStateOf(0) }
@@ -1469,10 +1472,11 @@ fun PlayerControls(
 
                 val durationFloat = effectiveDuration
                 val threshold = (durationFloat * 0.08f).coerceIn(15f, 400f)
-                // Suppress release-to-cancel when the drag started near either edge,
-                // so seeking to the very first/last position never reverts.
-                val dragStartedNearEdge = dragStartValue < threshold || dragStartValue > durationFloat - threshold
-                val close = enableReleaseToCancel && changeCount > 1 && !dragStartedNearEdge && abs(newValue - dragStartValue) < threshold
+                // Suppress release-to-cancel when the seek TARGET is the very start of the file
+                // (00:00:00). Small fixed zone, NOT the duration-scaled threshold, so it never
+                // blocks cancel mid-file on long videos.
+                val seekingToStart = newValue <= EDGE_EPSILON_SECONDS
+                val close = enableReleaseToCancel && changeCount > 1 && !seekingToStart && abs(newValue - dragStartValue) < threshold
 
                 if (close) {
                   isCloseToStart = true
