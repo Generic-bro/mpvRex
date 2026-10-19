@@ -4901,7 +4901,8 @@
   },
   "clip_export_fast_desc": {
     "source_hash": "6df31d35ac20fd08ab985332c7aecd55af5b06782ba1299ec1e5ef88b90d3149",
-    "translated_value": "نسخة البث الفوري بالجودة الأصلية 100%. يبدأ عند أقرب إطار رئيسي"
+    "translated_value": "نسخة البث الفوري بالجودة الأصلية 100%. يبدأ عند أقرب إطار رئيسي",
+    "ignore_warnings": true
   },
   "clip_export_exact_title": {
     "source_hash": "ee4be3bb77a547c44fc3462fa5f8bdfd3701c95adc57c0d8f4cee7a819b63551",
@@ -5229,5 +5230,251 @@
     "source_hash": "d81acf87bed65a9c158c3d391a01add7d9f72d0635159558ac5776b52155bfba",
     "translated_value": "لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.",
     "ignore_warnings": false
+  },
+  "pref_appearance_tab_you_title": {
+    "source_hash": "356beb0523d5412a1c60f6d9fa200a57a70acbcf3aba1058fbc50169d37d88c3",
+    "translated_value": "تبويبك",
+    "ignore_warnings": false
+  },
+  "pref_appearance_tab_you_summary": {
+    "source_hash": "8f3301b863e59e058f79d2e1d2fd69eb64e1c4e2e7b2bbc956910e798f3114c1",
+    "translated_value": "ٍدمج المشغَّلة حديثًا وقوائم التشغيل في تبويب واحد",
+    "ignore_warnings": false
+  },
+  "pref_player_gestures_pinch_to_resize_subtitle_title": {
+    "source_hash": "8aa6ef4821199a948f6d4d2856abbd21984f6b2326fcc12535e1b67bb5c52637",
+    "translated_value": "تغيير حجم الترجمة بايماءة القرص",
+    "ignore_warnings": false
+  },
+  "pref_player_gestures_pinch_to_resize_subtitle_summary": {
+    "source_hash": "67ab02f77b796d8d4f6fb9848093f2464e00b30904144bd0f5f26eae31ab72ff",
+    "translated_value": "قرص الترجمة بإصبعين لتغيير حجمها، وقرص ما سواها يكبر الفيديو ويصغره",
+    "ignore_warnings": false
+  },
+  "pref_gesture_double_tap_chapter_skip_title": {
+    "source_hash": "3bda3aec1bdc69b38a166a6fdd8612f849182421cc927a539400d8afe9da8d88",
+    "translated_value": "النقر المزدوج على الفصل لتخطيه",
+    "ignore_warnings": false
+  },
+  "pref_gesture_double_tap_chapter_skip_summary": {
+    "source_hash": "2345e871cfbf5b284bd0ad0c565e428e647a332e7ce27e1c17cd53c69ab80554",
+    "translated_value": "النقر مزدوجًا على الفصل للقفز إلى الفصل التالي",
+    "ignore_warnings": false
+  },
+  "pref_subtitles_encoding_title": {
+    "source_hash": "f1633cd16ad9fb5b136ebd723afb3d1bda659c96d177fc6b06bd710ba9379bb3",
+    "translated_value": "ترميز الترجمة",
+    "ignore_warnings": false
+  },
+  "pref_subtitles_encoding_summary": {
+    "source_hash": "bd92050f1da6b02345316cf579ed79d326033f50a5d7d64a8f2dea8cc558daab",
+    "translated_value": "ترميز الحروف المستخدم للترجمات الخارجية",
+    "ignore_warnings": false
+  },
+  "pref_appearance_hide_play_fab_show_in_header_title": {
+    "source_hash": "7c0182761c356111cf45a4eef8145e80be1d3ac958c61b03116d16c7ec044593",
+    "translated_value": "إظهار زر التشغيل في الترويسة",
+    "ignore_warnings": false
+  },
+  "pref_appearance_hide_play_fab_show_in_header_summary": {
+    "source_hash": "bc1717a8c41c5acd5fdc3a98d6586b9b495cedc10308252a73c25dff450982b0",
+    "translated_value": "إخفاء زر التشغيل العائم وإظهار أيقونة التشغيل بالترويسة بدلاً منه",
+    "ignore_warnings": false
+  },
+  "you": {
+    "source_hash": "08b041935798fbf6fd6ff51099ffedb140a475889986d14f5559ff8e7fc571dd",
+    "translated_value": "تبويبك",
+    "ignore_warnings": false
+  },
+  "view_all": {
+    "source_hash": "30a64216eaeac5d3a328c11bf5e3269d10a3ca0d50aa7a8b99337ab429b73cb2",
+    "translated_value": "عرض الكل",
+    "ignore_warnings": false
+  },
+  "watched": {
+    "source_hash": "1ca8c1c0de6fce0f4d13389a8e4a4cb646a316516fc7efbc9c734fc6026fcc75",
+    "translated_value": "شُوهد",
+    "ignore_warnings": false
+  },
+  "media_info_folder_path": {
+    "source_hash": "98bca2fab915abe0541e612db447c6cf9ad18d1aaa595f052c5d1bf6a697995b",
+    "translated_value": "مسار المجلد",
+    "ignore_warnings": false
+  },
+  "network_status_connected": {
+    "source_hash": "22965568d22a14ee17af055d2870b50afcfe9fd94a83eec3196e266932297bb2",
+    "translated_value": "متصل",
+    "ignore_warnings": false
+  },
+  "network_status_offline": {
+    "source_hash": "a1794783aab72d205dc532b1170d1be63ebdce8816b57c21acb451c15dab969a",
+    "translated_value": "غير متصل",
+    "ignore_warnings": false
+  },
+  "pref_category_ytdlp_updates": {
+    "source_hash": "4c819d0904ad1a42ca0aad3e528ed075965bb6529c078e8c6df640dbeab37c26",
+    "translated_value": "تحديثات REX Ytdlp",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_title": {
+    "source_hash": "861f91d7e073fe4bfb186c3e398c1eae7b673f0ad2bd4ece72944c8d9584c48b",
+    "translated_value": "موقع أدوات التحكم بالتشغيل",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_summary": {
+    "source_hash": "0fcde7b0ada1ffd3dd8dab1ba9f7152ce9c75c4be2fed42950bacaa183bc7558",
+    "translated_value": "وضع أزرار التشغيل في الوسط أو الشريط السفلي",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_center": {
+    "source_hash": "b08c49dc4893a5c63e7240a078bcdc51d11265f7e2a635267388d14984e8bfee",
+    "translated_value": "منتصف الشاشة",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_bottom": {
+    "source_hash": "4da0e3b1fe6a86a6b8889eb9aff151ab1112c937fd3d4b2e1209bddd5c732010",
+    "translated_value": "الشريط السفلي",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_hide": {
+    "source_hash": "7e6fefff0f0aeb6ca93086d3855d0406bdd0ee53b56771f8c794cf07af6598b7",
+    "translated_value": "مخفي",
+    "ignore_warnings": false
+  },
+  "network_stream_link_hint": {
+    "source_hash": "a237bf5e34c2624c73c6020ab46622c059092d5d76e2361a0e678c0bde825d25",
+    "translated_value": "اكتب أو ألصق الرابط",
+    "ignore_warnings": false
+  },
+  "auto_playlists": {
+    "source_hash": "d4871dff77b173771ee2b0ca143a60d4761cd984c4fcfb2999d6192dbd98d579",
+    "translated_value": "قوائم تشغيل تلقائية",
+    "ignore_warnings": false
+  },
+  "auto_playlists_desc": {
+    "source_hash": "190164d1f07f49f1611f73c0b46335c7d66b3e9094f475df75ebf2af46882e8c",
+    "translated_value": "تهيئة قوائم التشغيل الديناميكية المُولّدة آلي",
+    "ignore_warnings": false
+  },
+  "playlist_recently_added": {
+    "source_hash": "76ad8e11d3ba073a5c8210c0dd61c481bfaf34a6c766d3a71de719fc7f9a7c2f",
+    "translated_value": "أُضيفت مؤخرًا",
+    "ignore_warnings": false
+  },
+  "playlist_recently_added_desc": {
+    "source_hash": "c6fcf95a7faf4a29e92b36ab9cc14848e98175dbfd909f78a29bfffd1bfd9e4f",
+    "translated_value": "قائمة تشغيل ديناميكية لآخر الوسائط المُضافة",
+    "ignore_warnings": false
+  },
+  "playlist_most_played": {
+    "source_hash": "68a80e80b8d5ad7f23cd3c45ab63ce52d917170d224113a0eec3f7802754d245",
+    "translated_value": "الأكثر تشغيلاً",
+    "ignore_warnings": false
+  },
+  "playlist_most_played_desc": {
+    "source_hash": "a2a07b42c6d2567992571b784af3006dfd911079b4fe3c49ee6c3afaef62da47",
+    "translated_value": "قائمة تشغيل ديناميكية للوسائط الأكثر مشاهدة",
+    "ignore_warnings": false
+  },
+  "auto_playlist_badge": {
+    "source_hash": "0286249762f7c94349cdc0ba3bb2255baf9a80036e2193ead1d77696f888582f",
+    "translated_value": "تلقائي",
+    "ignore_warnings": false
+  },
+  "web_share_title": {
+    "source_hash": "1d3db2a3b63ca400ffcad493983986689644494c7e79c439128c4212fe76810d",
+    "translated_value": "مشاركة على الويب",
+    "ignore_warnings": false
+  },
+  "web_share_file": {
+    "source_hash": "3b9c358f36f0a31b6ad3e14f309c7cf198ac9246e8316f9ce543d5b19ac02b80",
+    "translated_value": "ملف",
+    "ignore_warnings": false
+  },
+  "web_share_files": {
+    "source_hash": "3d7db37d08f9140fd09f12b9621cd0954b6d56a9d2f357fb2c7f5d62636d2fd1",
+    "translated_value": "ملفات",
+    "ignore_warnings": false
+  },
+  "web_share_qr_desc": {
+    "source_hash": "0aa0128597cbc9d57afb861dfd11ff6148f8112f4f4e571c759d116d8cd1de0f",
+    "translated_value": "مسح رمز الاستجابة السريعة (QR)",
+    "ignore_warnings": false
+  },
+  "web_share_enable_notifications_title": {
+    "source_hash": "87b9876704ed8c31d24cf89069a3cac5066193ccaebdf684706d0a475e080a8d",
+    "translated_value": "تفعيل الإشعارات",
+    "ignore_warnings": false
+  },
+  "web_share_enable_notifications_desc": {
+    "source_hash": "57a3318fbc7e2cf08e85dfc70b1a8febe8b4169e1e3fa70412f84df3431edd16",
+    "translated_value": "مواصلة المشاركة في الخلفية وإعادة الفتح في أي وقت",
+    "ignore_warnings": false
+  },
+  "web_share_allow": {
+    "source_hash": "e213c161d5cefa520c8dd4155c9569076d9a40406111465136a6f1b207045761",
+    "translated_value": "سماح",
+    "ignore_warnings": false
+  },
+  "web_share_require_token_title": {
+    "source_hash": "d5a2e4e40c75d000c81926b6aa9e479af706ba03c684337c6eabead87db72b97",
+    "translated_value": "يتطلب رمز الأمان",
+    "ignore_warnings": false
+  },
+  "web_share_require_token_enabled_desc": {
+    "source_hash": "d59de3607f2421a99d4e5feb4023c6b9e969bc72a551b926c0c1d1e26448c4aa",
+    "translated_value": "يتطلب ?t= رمز لعرض الملفات",
+    "ignore_warnings": false
+  },
+  "web_share_require_token_disabled_desc": {
+    "source_hash": "08f8850db473fabc348fb31c1d61fc9d99c6188c164bc696d0014ddc51ebb976",
+    "translated_value": "وصول مفتوح (سريع ويسير)",
+    "ignore_warnings": false
+  },
+  "web_share_received_title": {
+    "source_hash": "8efe95d648fb153ceaef35e0d67ecb3841a1a5b5bd21c268e5928142b3560f0e",
+    "translated_value": "تسلمت (%1$d)",
+    "ignore_warnings": false
+  },
+  "web_share_received_path": {
+    "source_hash": "ffa2e382b065631657a74aa3dc3d8c790a083ceec808f4008a034af8561edd89",
+    "translated_value": "تنزيل/مشغل REX",
+    "ignore_warnings": false
+  },
+  "web_share_copy_link": {
+    "source_hash": "724e78a3254c899d16ef6324a7abc9a8f5240ffce8bff74976df397c68ce9d78",
+    "translated_value": "نسخ الرابط",
+    "ignore_warnings": false
+  },
+  "web_share_link_copied": {
+    "source_hash": "e2a627b4134a5455218d4018fec6393c005ed0097d63e533d50ea350a1eab6c2",
+    "translated_value": "نُسخ الرابط في الحافظة",
+    "ignore_warnings": false
+  },
+  "web_share_no_network": {
+    "source_hash": "1dd7eb726fa8ae8ba6573eaebb50fca694a8e2b3a893ab06aa703b61e526b14d",
+    "translated_value": "شغّل نقطة الاتصال أو اتصل بشبكة واي-فاي للمشاركة",
+    "ignore_warnings": false
+  },
+  "web_share_step_1": {
+    "source_hash": "658bf8c02c5654fe6a6d608eb4c6a8d69754645efc82dc8119e71536df3c57de",
+    "translated_value": "وصّل الهاتف المستقبِل بنقطة الاتصال هذه أو بشبكة الواي-فاي",
+    "ignore_warnings": false
+  },
+  "web_share_stop_sharing": {
+    "source_hash": "042afa22248968fdcaed8522959441cf87fb4ec09f8fcdf1359c1ba481a03b71",
+    "translated_value": "إيقاف المشاركة",
+    "ignore_warnings": false
+  },
+  "web_share_step_2": {
+    "source_hash": "9dcad5b2c927540558d71fbc0f77749468e3d321d9e0f59b6a561a34679a71e0",
+    "translated_value": "امسح رمز الاستجابة السريعة أو أدخل الرابط في أي متصفح",
+    "ignore_warnings": false
+  },
+  "pref_max_horizontal_video_duration_desc#plural#two": {
+    "ignore_warnings": true
+  },
+  "num_columns#plural#two": {
+    "ignore_warnings": true
   }
 }
