@@ -146,7 +146,7 @@
     <string name="pref_layout_portrait_bottom_controls">Portrait Bottom Controls</string>
 
     <string name="pref_player">Player</string>
-    <string name="pref_player_summary">Orientation, gestures and controls</string>
+    <string name="pref_player_summary">Orientation, playback and display</string>
     <string name="pref_player_orientation">Orientation</string>
     <string name="pref_player_orientation_free">Free</string>
     <string name="pref_player_orientation_video">Video</string>
@@ -224,8 +224,9 @@
     <string name="pref_player_display_panel_transparency_summary" translatable="false">%d%%</string>
 
     <string name="pref_gesture">Gestures</string>
-    <string name="pref_gesture_summary">Double tap, media controls</string>
+    <string name="pref_gesture_summary">Screen gestures, double tap, media controls</string>
     <string name="pref_gesture_double_tap_title">Double tap</string>
+    <string name="pref_gesture_screen_gestures_title">Screen gestures</string>
     <string name="pref_gesture_double_tap_none">None</string>
     <string name="pref_gesture_double_tap_seek">Seek</string>
     <string name="pref_gesture_double_tap_subseek">Seek Subtitle</string>
@@ -1305,6 +1306,7 @@
     <string name="pref_advanced_tap_to_edit_configuration">Tap to edit configuration</string>
     <string name="pref_advanced_mpv_directory_ready">MPV directory ready ✓</string>
     <string name="pref_advanced_lua_set_storage_first">Set storage location and enable Lua scripts first</string>
+    <string name="pref_custom_lua_disabled_toast">Enable Lua scripts in Advanced first</string>
     <string name="pref_advanced_no_scripts_enabled">No scripts enabled</string>
     <string name="pref_advanced_custom_lua_summary">Create and manage custom Lua buttons</string>
     <string name="pref_advanced_config_cache_cleared">Config cache cleared</string>
