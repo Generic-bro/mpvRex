@@ -1046,6 +1046,8 @@
     <string name="update_release_date">Release Date</string>
     <string name="update_size">Size</string>
     <string name="update_release_notes">Release Notes</string>
+    <string name="update_whats_changed">What\'s changed</string>
+    <string name="update_more_commits">…and %1$d more commits (only the latest 20 are shown)</string>
     <string name="update_downloading">Downloading…</string>
     <string name="update_install">Install</string>
     <string name="update_download">Download</string>

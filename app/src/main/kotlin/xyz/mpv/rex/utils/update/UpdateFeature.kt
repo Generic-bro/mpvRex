@@ -2,7 +2,9 @@ package xyz.mpv.rex.utils.update
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
@@ -25,9 +30,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import xyz.mpv.rex.utils.media.MediaFormatter
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withAnnotation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.res.stringResource
 import xyz.mpv.rex.R
 import dev.jeziellago.compose.markdowntext.MarkdownText
@@ -88,6 +103,12 @@ data class ChangelogEntry(
     @SerialName("sha") val sha: String = ""
 )
 
+/** A piece of a changelog message: plain text, or an "#123" issue/PR reference. */
+sealed interface ChangelogSegment {
+    data class Text(val text: String) : ChangelogSegment
+    data class Ref(val number: String) : ChangelogSegment
+}
+
 // --- Domain Manager ---
 
 class UpdateManager(
@@ -127,75 +148,52 @@ class UpdateManager(
             }
         }
 
-        // --- Preview changelog → release notes markdown ---
+        // --- Preview changelog ---
 
-        private val markdownEscapes = Regex("""([\`*_\[\]!~<>])""")
         private val issueRef = Regex("""#(\d+)""")
 
-        fun escapeMarkdown(text: String): String {
-            return markdownEscapes.replace(text) { "\\${it.groupValues[1]}" }
-        }
+        fun commitUrl(sha: String): String = "$REPO_COMMIT_URL/$sha"
 
-        // Adjacent-span links: the message text links to the GitHub commit page and each
-        // "#123" reference links to the issue/PR. Markdown forbids nested links, so the
-        // message is split into ordered spans instead of wrapping the whole line.
-        private fun commitSpan(entry: ChangelogEntry, text: String): String {
-            if (text.isEmpty()) return ""
-            // Keep pure-separator runs (")" etc.) plain; only real message text is a link.
-            if (entry.sha.isBlank() || !text.any { it.isLetterOrDigit() }) {
-                return escapeMarkdown(text)
-            }
-            return "[${escapeMarkdown(text)}]($REPO_COMMIT_URL/${entry.sha})"
-        }
+        fun issueUrl(number: String): String = "$REPO_ISSUE_URL/$number"
 
-        private fun buildEntryLine(entry: ChangelogEntry): String {
-            val line = StringBuilder("- **r").append(entry.serial).append("** ")
-            val message = entry.message.trim()
-            if (message.isEmpty()) return line.toString().trim()
+        /** Splits a commit subject into plain text and "#123" issue/PR reference segments. */
+        fun parseChangelogSegments(message: String): List<ChangelogSegment> {
+            val segments = mutableListOf<ChangelogSegment>()
             var index = 0
             for (match in issueRef.findAll(message)) {
-                line.append(commitSpan(entry, message.substring(index, match.range.first)))
-                line.append('[')
-                    .append(match.value)
-                    .append("](")
-                    .append(REPO_ISSUE_URL)
-                    .append('/')
-                    .append(match.groupValues[1])
-                    .append(')')
+                if (match.range.first > index) {
+                    segments += ChangelogSegment.Text(message.substring(index, match.range.first))
+                }
+                segments += ChangelogSegment.Ref(match.groupValues[1])
                 index = match.range.last + 1
             }
-            line.append(commitSpan(entry, message.substring(index)))
-            return line.toString()
+            if (index < message.length) {
+                segments += ChangelogSegment.Text(message.substring(index))
+            }
+            return segments
+        }
+
+        /** Commits between the installed build (serial > currentCommitCount) and the available build. */
+        fun previewChangelogEntries(release: Release, currentCommitCount: Int): List<ChangelogEntry> {
+            return release.changelog
+                .filter { it.serial > currentCommitCount }
+                .sortedByDescending { it.serial }
         }
 
         /**
-         * Builds release notes for a preview update: commit messages between the installed
-         * build (serial > currentCommitCount) and the available build. Entries older than
-         * the changelog window are summarised in a trailing "and N more" note. Falls back
-         * to the static body when no structured changelog is available.
+         * Commits between the installed build and the release tag that are not listed in the
+         * changelog window (capped by the workflow; merge commits are excluded too).
          */
-        fun buildPreviewReleaseNotes(release: Release, currentCommitCount: Int): String {
-            if (release.changelog.isEmpty()) return release.body
-            val shown = release.changelog
-                .filter { it.serial > currentCommitCount }
-                .sortedByDescending { it.serial }
-            if (shown.isEmpty()) return release.body
-            val notes = StringBuilder("### What's changed\n")
-            shown.forEach { notes.append(buildEntryLine(it)).append('\n') }
-            // Count every commit between the installed build and the release tag — not just
-            // the entries in the (capped, possibly merge-less) changelog window.
+        fun previewChangelogSkipped(
+            release: Release,
+            currentCommitCount: Int,
+            shownCount: Int
+        ): Int {
+            if (shownCount <= 0) return 0
             val latestSerial = parseCommitCount(release.tagName)
-            val totalBetween = if (latestSerial != null) {
-                latestSerial - currentCommitCount
-            } else {
-                shown.first().serial - currentCommitCount
-            }
-            val skipped = totalBetween - shown.size
-            if (skipped > 0) {
-                notes.append("\n*…and ").append(skipped)
-                    .append(" more commits (only the latest 20 are shown)*\n")
-            }
-            return notes.toString().trim()
+                ?: release.changelog.maxOfOrNull { it.serial }
+                ?: return 0
+            return (latestSerial - currentCommitCount) - shownCount
         }
 
         fun parseFileSizeToBytes(sizeStr: String): Long {
@@ -356,8 +354,7 @@ class UpdateManager(
 
         val currentCommitCount = getCurrentCommitCount()
         return if (isNewerPreviewVersion(remoteVersion, currentCommitCount)) {
-            val sizedRelease = ensureAssetSizes(release)
-            sizedRelease.copy(body = buildPreviewReleaseNotes(release, currentCommitCount))
+            ensureAssetSizes(release)
         } else {
             null
         }
@@ -741,6 +738,11 @@ fun UpdateDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .widthIn(max = 480.dp)
+            .fillMaxWidth(),
         icon = {
             Icon(
                 imageVector = if (actionLabel == "Install") Icons.Filled.SystemUpdate else Icons.Filled.CloudDownload,
@@ -787,11 +789,15 @@ fun UpdateDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    MarkdownText(
-                        markdown = release.body,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (release.changelog.isNotEmpty()) {
+                        PreviewChangelogNotes(release)
+                    } else {
+                        MarkdownText(
+                            markdown = release.body,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
 
                 if (isDownloading) {
@@ -876,4 +882,117 @@ private fun formatDate(dateString: String): String {
         }
     }
     return dateString
+}
+
+private const val CHANGELOG_URL_TAG = "changelog_url"
+
+/**
+ * Preview changelog rendered as native Compose text so only issue/PR ids are accented:
+ * commit subjects keep the normal text color (clicking opens the GitHub commit page) and
+ * "#123" references are bold + blue (clicking opens the issue/PR page).
+ */
+@Composable
+private fun PreviewChangelogNotes(release: Release) {
+    val context = LocalContext.current
+    val currentCommitCount = UpdateManager.getCurrentCommitCount()
+    val entries = UpdateManager.previewChangelogEntries(release, currentCommitCount)
+    if (entries.isEmpty()) {
+        MarkdownText(
+            markdown = release.body,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+        return
+    }
+
+    val refStyle = SpanStyle(
+        color = if (isSystemInDarkTheme()) Color(0xFF8AB4F8) else Color(0xFF1A73E8),
+        fontWeight = FontWeight.Bold
+    )
+    // ClickableText does not pick up the dialog's content color, so resolve it explicitly
+    // to keep commit subjects readable in both light and dark themes.
+    val messageStyle = MaterialTheme.typography.bodyMedium.copy(
+        color = MaterialTheme.colorScheme.onSurface
+    )
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.update_whats_changed),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+        entries.forEach { entry ->
+            val annotated = remember(entry, refStyle) {
+                buildChangelogAnnotatedString(entry, refStyle)
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp)
+            ) {
+                Text(text = "•", style = messageStyle)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "r${entry.serial}",
+                    style = messageStyle,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                ClickableText(
+                    text = annotated,
+                    style = messageStyle,
+                    modifier = Modifier.weight(1f),
+                    onClick = { offset ->
+                        annotated
+                            .getStringAnnotations(CHANGELOG_URL_TAG, offset, offset)
+                            .firstOrNull()
+                            ?.let { openUrl(context, it.item) }
+                    }
+                )
+            }
+        }
+        val skipped = UpdateManager.previewChangelogSkipped(release, currentCommitCount, entries.size)
+        if (skipped > 0) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.update_more_commits, skipped),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun buildChangelogAnnotatedString(
+    entry: ChangelogEntry,
+    refStyle: SpanStyle
+): AnnotatedString = buildAnnotatedString {
+    val message = entry.message.trim()
+    if (message.isEmpty()) return@buildAnnotatedString
+    for (segment in UpdateManager.parseChangelogSegments(message)) {
+        when (segment) {
+            is ChangelogSegment.Text -> {
+                if (entry.sha.isNotBlank()) {
+                    withAnnotation(CHANGELOG_URL_TAG, UpdateManager.commitUrl(entry.sha)) {
+                        append(segment.text)
+                    }
+                } else {
+                    append(segment.text)
+                }
+            }
+            is ChangelogSegment.Ref -> {
+                withAnnotation(CHANGELOG_URL_TAG, UpdateManager.issueUrl(segment.number)) {
+                    withStyle(refStyle) { append("#${segment.number}") }
+                }
+            }
+        }
+    }
+}
+
+private fun openUrl(context: Context, url: String) {
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
 }

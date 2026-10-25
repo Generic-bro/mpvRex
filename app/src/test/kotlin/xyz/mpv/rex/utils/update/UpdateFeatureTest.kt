@@ -147,91 +147,96 @@ class UpdateFeatureTest {
     )
 
     @Test
-    fun buildPreviewReleaseNotes_linksCommitsAndIssueReferences() {
+    fun previewChangelogEntries_filtersByInstalledBuildAndOrdersNewestFirst() {
         val release = previewRelease(
             listOf(
-                ChangelogEntry(1015, "Fix crash on playback start (fixes #42)", "abc123"),
-                ChangelogEntry(1014, "Fix subtitle offsets on low-fps clips", "ghi789"),
-                ChangelogEntry(1013, "Rehome misplaced options", "jkl012"),
-                ChangelogEntry(1012, "Deduplicate settings pages", "mno345"),
                 ChangelogEntry(1011, "Improve subtitle rendering", "def456"),
-                ChangelogEntry(1005, "Older than installed build", "old123") // <= current, excluded
+                ChangelogEntry(1005, "Older than installed build", "old123"), // <= current, excluded
+                ChangelogEntry(1015, "Fix crash on playback start (fixes #42)", "abc123"),
+                ChangelogEntry(1014, "Fix subtitle offsets on low-fps clips", "ghi789")
             )
         )
 
-        val notes = UpdateManager.buildPreviewReleaseNotes(release, currentCommitCount = 1010)
+        val entries = UpdateManager.previewChangelogEntries(release, currentCommitCount = 1010)
 
-        val expected = "### What's changed\n" +
-            "- **r1015** [Fix crash on playback start (fixes ](${UpdateManager.REPO_COMMIT_URL}/abc123)" +
-            "[#42](${UpdateManager.REPO_ISSUE_URL}/42))\n" +
-            "- **r1014** [Fix subtitle offsets on low-fps clips](${UpdateManager.REPO_COMMIT_URL}/ghi789)\n" +
-            "- **r1013** [Rehome misplaced options](${UpdateManager.REPO_COMMIT_URL}/jkl012)\n" +
-            "- **r1012** [Deduplicate settings pages](${UpdateManager.REPO_COMMIT_URL}/mno345)\n" +
-            "- **r1011** [Improve subtitle rendering](${UpdateManager.REPO_COMMIT_URL}/def456)"
-        assertEquals(expected, notes)
-        assertFalse(notes.contains("r1005"))
+        assertEquals(listOf(1015, 1014, 1011), entries.map { it.serial })
     }
 
     @Test
-    fun buildPreviewReleaseNotes_escapesMarkdownCharacters() {
-        val release = previewRelease(
-            tagName = "r1013",
-            changelog = listOf(
-                ChangelogEntry(1013, "fix: gamma *bold* _under_ [brk] `code` ~end~ <tag> !bang", "s1h2"),
-                ChangelogEntry(1012, "Fix subtitle rounding", "ru2nd"),
-                ChangelogEntry(1011, "Improve cache eviction", "ev1ct")
-            )
+    fun previewChangelogEntries_handlesBoundaryAndEmptyResults() {
+        val atInstalledBuild = previewRelease(listOf(ChangelogEntry(1010, "At installed build", "sha")))
+        assertTrue(UpdateManager.previewChangelogEntries(atInstalledBuild, 1010).isEmpty())
+
+        val nextCommit = previewRelease(listOf(ChangelogEntry(1011, "Next commit", "sha")))
+        assertEquals(
+            listOf(1011),
+            UpdateManager.previewChangelogEntries(nextCommit, 1010).map { it.serial }
         )
 
-        val notes = UpdateManager.buildPreviewReleaseNotes(release, currentCommitCount = 1010)
-
-        val expected = """### What's changed
-- **r1013** [fix: gamma \*bold\* \_under\_ \[brk\] \`code\` \~end\~ \<tag\> \!bang](${UpdateManager.REPO_COMMIT_URL}/s1h2)
-- **r1012** [Fix subtitle rounding](${UpdateManager.REPO_COMMIT_URL}/ru2nd)
-- **r1011** [Improve cache eviction](${UpdateManager.REPO_COMMIT_URL}/ev1ct)""".trimIndent()
-        assertEquals(expected, notes)
+        // No changelog at all (older manifest / HTML fallback)
+        assertTrue(UpdateManager.previewChangelogEntries(previewRelease(), 1000).isEmpty())
     }
 
     @Test
-    fun buildPreviewReleaseNotes_fallsBackWhenChangelogMissingOrStale() {
-        // No changelog (old manifest / HTML fallback): keep static body
-        assertEquals("Nightly preview build automatically generated from master branch.",
-            UpdateManager.buildPreviewReleaseNotes(previewRelease(), 1000))
-
-        // All entries at or below the installed build: keep static body
-        val stale = previewRelease(listOf(ChangelogEntry(900, "Old commit", "sha900")))
-        assertEquals("Nightly preview build automatically generated from master branch.",
-            UpdateManager.buildPreviewReleaseNotes(stale, 1000))
-    }
-
-    @Test
-    fun buildPreviewReleaseNotes_notifiesAboutCommitsOutsideWindow() {
+    fun previewChangelogSkipped_countsCommitsOutsideWindow() {
         val window = (996..1015).map { n -> ChangelogEntry(n, "Commit $n", "sha$n") }
         val release = previewRelease(window)
 
-        val notes = UpdateManager.buildPreviewReleaseNotes(release, currentCommitCount = 800)
+        val shown = UpdateManager.previewChangelogEntries(release, 800)
+        assertEquals(20, shown.size)
+        assertEquals(195, UpdateManager.previewChangelogSkipped(release, 800, shown.size))
 
-        assertTrue(notes.contains("- **r1015** [Commit 1015](${UpdateManager.REPO_COMMIT_URL}/sha1015)"))
-        assertTrue(notes.contains("…and 195 more commits (only the latest 20 are shown)"))
-        assertFalse(notes.contains("Commit 995"))
+        // Whole range covered by the window -> no extra note
+        val fullyCovered = UpdateManager.previewChangelogEntries(release, 995)
+        assertEquals(0, UpdateManager.previewChangelogSkipped(release, 995, fullyCovered.size))
+
+        // Nothing shown -> no note
+        assertEquals(0, UpdateManager.previewChangelogSkipped(release, 1015, 0))
     }
 
     @Test
-    fun buildPreviewReleaseNotes_keepsPlainMessageWithoutSha() {
-        val release = previewRelease(
-            tagName = "r1012",
-            changelog = listOf(
-                ChangelogEntry(1012, "Cleanup from rebase refs #7", ""),
-                ChangelogEntry(1011, "Improve subtitle rendering", "def456")
-            )
+    fun parseChangelogSegments_splitsIssueReferences() {
+        assertEquals(
+            listOf(
+                ChangelogSegment.Text("Fix crash on playback start (fixes "),
+                ChangelogSegment.Ref("42"),
+                ChangelogSegment.Text(")")
+            ),
+            UpdateManager.parseChangelogSegments("Fix crash on playback start (fixes #42)")
         )
 
-        val notes = UpdateManager.buildPreviewReleaseNotes(release, currentCommitCount = 1010)
+        assertEquals(
+            listOf(
+                ChangelogSegment.Text("collisions ("),
+                ChangelogSegment.Ref("396"),
+                ChangelogSegment.Text(") ("),
+                ChangelogSegment.Ref("455"),
+                ChangelogSegment.Text(")")
+            ),
+            UpdateManager.parseChangelogSegments("collisions (#396) (#455)")
+        )
 
-        val expected = "### What's changed\n" +
-            "- **r1012** Cleanup from rebase refs [#7](${UpdateManager.REPO_ISSUE_URL}/7)\n" +
-            "- **r1011** [Improve subtitle rendering](${UpdateManager.REPO_COMMIT_URL}/def456)"
-        assertEquals(expected, notes)
+        assertEquals(
+            listOf(ChangelogSegment.Ref("12"), ChangelogSegment.Text(" lead")),
+            UpdateManager.parseChangelogSegments("#12 lead")
+        )
+
+        assertEquals(
+            listOf(ChangelogSegment.Text("no references here")),
+            UpdateManager.parseChangelogSegments("no references here")
+        )
+    }
+
+    @Test
+    fun commitAndIssueUrls_pointToRepositoryPages() {
+        assertEquals(
+            "https://github.com/mpvRex/REX-Player/commit/abc123",
+            UpdateManager.commitUrl("abc123")
+        )
+        assertEquals(
+            "https://github.com/mpvRex/REX-Player/issues/442",
+            UpdateManager.issueUrl("442")
+        )
     }
 
     @Test
