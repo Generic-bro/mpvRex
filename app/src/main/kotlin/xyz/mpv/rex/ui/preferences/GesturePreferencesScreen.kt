@@ -41,6 +41,7 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.player.CustomKeyCodes
+import xyz.mpv.rex.ui.player.LongPressSpeedMemoryMode
 import xyz.mpv.rex.ui.player.SingleActionGesture
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.utils.LocalBackStack
@@ -115,7 +116,7 @@ object GesturePreferencesScreen : Screen {
             val pinchToResizeSubtitle by playerPreferences.pinchToResizeSubtitle.collectAsState()
             val horizontalSwipeSensitivity by playerPreferences.horizontalSwipeSensitivity.collectAsState()
             val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
-            val rememberLongPressSpeed by playerPreferences.rememberLongPressSpeed.collectAsState()
+            val longPressSpeedMemoryMode by playerPreferences.longPressSpeedMemoryMode.collectAsState()
             val showDynamicSpeedOverlay by playerPreferences.showDynamicSpeedOverlay.collectAsState()
             val showSpeedIndicatorOverlay by playerPreferences.showSpeedIndicatorOverlay.collectAsState()
             val tapThumbnailToSelect by preferences.tapThumbnailToSelect.collectAsState()
@@ -263,13 +264,15 @@ object GesturePreferencesScreen : Screen {
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_remember_long_press_speed_title,
               ) {
-                SwitchPreference(
-                  value = rememberLongPressSpeed,
-                  onValueChange = playerPreferences.rememberLongPressSpeed::set,
+                ListPreference(
+                  value = longPressSpeedMemoryMode,
+                  onValueChange = playerPreferences.longPressSpeedMemoryMode::set,
+                  values = LongPressSpeedMemoryMode.entries,
+                  valueToText = { AnnotatedString(context.getString(it.titleRes)) },
                   title = { Text(stringResource(R.string.pref_player_remember_long_press_speed_title)) },
                   summary = {
                     Text(
-                      stringResource(R.string.pref_player_remember_long_press_speed_summary),
+                      stringResource(longPressSpeedMemoryMode.titleRes),
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
